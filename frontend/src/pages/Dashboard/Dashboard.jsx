@@ -21,6 +21,7 @@ import { addDoc } from "firebase/firestore";
 import { query, where } from "firebase/firestore";
 import { getDocs } from "firebase/firestore";
 import { deleteDoc } from "firebase/firestore";
+import { sendMessage } from "../../services/chatServices";
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -48,11 +49,6 @@ const Dashboard = () => {
   // Materials state
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
-
-  const API_BASE_URL = 
-  import.meta.env.VITE_ENVIRONMENT === "local" 
-    ? "http://localhost:3000" 
-    : `${import.meta.env.VITE_BACKEND_URL}`;
 
   // Handlers
   const handleSelectRole = (role) => {
@@ -134,7 +130,6 @@ const Dashboard = () => {
   const handleSendMessage = async () => {
     if (!aiInput.trim()) return;
 
-    // Add user message to chat
     const newMessage = {
       text: aiInput,
       sender: "user",
@@ -143,31 +138,15 @@ const Dashboard = () => {
     setAiInput("");
 
     try {
-      // console.log(aiInput);
-      setIsTyping(true)
-      // console.log(`${import.meta.env.VITE_BACKEND_URL}/api/chat/message`)
-      const response = await fetch(`${API_BASE_URL}/api/chat/message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: aiInput }),
-      });
-
-      const data = await response.json();
-
-      // console.log(data);
-      if (data.data.message) {
-        const aiResponse = {
-          text: data.data.message.text,
-          sender: 'ai'
-        };
-        // console.log(aiResponse);
-        setMessages((msgs) => [...msgs, aiResponse]);
-      }
+      setIsTyping(true);
+      const aiResponseText = await sendMessage(aiInput);
+      const aiResponse = {
+        text: aiResponseText,
+        sender: 'ai'
+      };
+      setMessages((msgs) => [...msgs, aiResponse]);
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Optionally add error handling UI
     } finally {
       setIsTyping(false);
     }
