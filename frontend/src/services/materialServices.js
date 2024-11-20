@@ -5,8 +5,6 @@ const API_BASE_URL =
     ? "http://localhost:3000/api/files/admin" 
     : `${import.meta.env.VITE_BACKEND_URL}/api/files/admin`;
 
-    console.log(API_BASE_URL)
-
 export const materialService = {
   async uploadFiles(formData) {
     // console.log("Logging FormData service call content:");

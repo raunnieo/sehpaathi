@@ -24,8 +24,8 @@ const MaterialBrowser = ({
   const [selectedMaterialType, setSelectedMaterialType] = useState('');
   const [uploadProgress, setUploadProgress] = useState({});
   const [fileList, setFileList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingTree, setLoadingTree] = useState(false);
+  const [loading, setLoading] = useState(false); // for file list loading
+  const [loadingTree, setLoadingTree] = useState(false); // for directory tree loading
   const [error, setError] = useState(null);
   const [errorTree, setErrorTree] = useState(null);
   const [expandedNodes, setExpandedNodes] = useState(new Set(['root']));
@@ -50,7 +50,7 @@ const MaterialBrowser = ({
       }
     } catch (err) {
       console.error('Error fetching file tree:', err);
-      setError('Failed to load file structure. Please try again.');
+      setErrorTree('Failed to load file structure. Please try again.');
     } finally {
       setLoadingTree(false);
     }
@@ -571,17 +571,17 @@ const removeFile = (fileId) => {
           className="p-2 hover:bg-gray-100 rounded-lg"
           disabled={loadingTree}
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${loadingTree ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      {error && (
+      {errorTree && (
         <div className="text-red-500 p-4 mb-4 bg-red-50 rounded-lg">
-          {error}
+          {errorTree}
         </div>
       )}
 
-      {loading ? (
+      {loadingTree ? (
         <div className="flex items-center justify-center p-8">
           <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
         </div>
