@@ -1,5 +1,7 @@
 const { drive } = require('../config/googleDrive');
 const streamifier = require('streamifier');
+const groqService = require('./groq');
+const fileSearchService = require('./fileSearchService');
 
 class DriveService {
   static async setPermissions(fileId, userEmail = null) {
@@ -380,6 +382,10 @@ static async deleteFile(uid, fileId) {
 
       await this.setPermissions(uploadedFile.data.id);
 
+      // Immediately refresh the directory tree after upload
+      console.log('File uploaded, refreshing directory structure...');
+      await this.refreshDirectoryTree();
+
       return {
         ...uploadedFile.data,
         downloadUrl: uploadedFile.data.webContentLink,
@@ -392,6 +398,29 @@ static async deleteFile(uid, fileId) {
       console.error('Failed to upload admin file:', error);
       throw new Error('Failed to upload admin file: ' + error.message);
     }
+  }
+
+  static async refreshDirectoryTree() {
+    console.log('Refreshing directory tree...');
+    try {
+      const tree = await this.getDirectoryTree();
+      // Services will be updated automatically in getDirectoryTree
+      console.log('Directory tree refreshed successfully');
+      return tree;
+    } catch (error) {
+      console.error('Failed to refresh directory tree:', error);
+      throw error;
+    }
+  }
+
+  static startPeriodicRefresh(intervalMinutes = 5) {
+    setInterval(async () => {
+      try {
+        await this.refreshDirectoryTree();
+      } catch (error) {
+        console.error('Periodic refresh failed:', error);
+      }
+    }, intervalMinutes * 60 * 1000);
   }
 
   static async listAdminFiles(branch = null, semester = null, subject = null, category = null) {
@@ -506,15 +535,17 @@ static async deleteFile(uid, fileId) {
 
   static async getDirectoryTree() {
     try {
+      console.log('Building directory tree...');
       const adminFolder = await this.ensureAdminFolder();
-      const tree = {
+      let tree = {        // Changed from const to let
         name: 'root',
         type: 'folder',
         children: {}
       };
 
-      // Get all files first
+      console.log('Fetching all admin files...');
       const allFiles = await this.listAllAdminFiles();
+      console.log(`Found ${allFiles.length} total files`);
 
       // Build tree structure
       allFiles.forEach(file => {
@@ -548,6 +579,7 @@ static async deleteFile(uid, fileId) {
         });
       });
 
+      console.log('Converting children to arrays...');
       // Convert children objects to arrays
       const convertChildrenToArray = (node) => {
         if (node.children && typeof node.children === 'object' && !Array.isArray(node.children)) {
@@ -562,13 +594,40 @@ static async deleteFile(uid, fileId) {
         return node;
       };
 
-      return convertChildrenToArray(tree);
+      tree = convertChildrenToArray(tree);    // Update existing tree instead of redeclaring
+      
+      console.log('Updating services with new file structure...');
+      // Update both services with the new file structure
+      groqService.setFileStructure(tree);
+      fileSearchService.setFileStructure(tree);
+      
+      return tree;
     } catch (error) {
       console.error("Error getting directory tree:", error);
       throw new Error("Failed to retrieve directory structure: " + error.message);
     }
   }
 
+  static async initializeFileStructure() {
+    try {
+      console.log('Initializing file structure...');
+      const tree = await this.getDirectoryTree();
+      console.log('File structure initialized with:', {
+        rootName: tree.name,
+        childrenCount: tree.children?.length || 0
+      });
+      return tree;
+    } catch (error) {
+      console.error('Failed to initialize file structure:', error);
+      throw error;
+    }
+  }
+
 }
+
+// Initialize with periodic refresh
+DriveService.initializeFileStructure()
+  .then(() => DriveService.startPeriodicRefresh())
+  .catch(console.error);
 
 module.exports = DriveService;

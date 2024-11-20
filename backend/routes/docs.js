@@ -310,18 +310,18 @@ const documentationMiddleware = (req, res) => {
                     <div class="parameter">
                         <span class="parameter-name">message</span>
                         <span class="parameter-type">string</span>
-                        <p>The message text to send to the chatbot</p>
+                        <p>Required: The message text to send to the chatbot</p>
                     </div>
 
                     <h4>Response</h4>
                     <pre><code class="language-json">{
-  "status": "success",
-  "data": {
-    "message": {
-      "text": "AI generated response",
-      "sender": "ai"
+    "status": "success",
+    "data": {
+        "message": {
+            "text": "AI generated response",
+            "sender": "ai"
+        }
     }
-  }
 }</code></pre>
                 </div>
             </section>
@@ -331,57 +331,71 @@ const documentationMiddleware = (req, res) => {
                 <div class="endpoint">
                     <span class="method post">POST</span>
                     <span class="endpoint-url">/api/files/upload</span>
-                    <p class="description">Upload a file to the user's storage.</p>
+                    <p class="description">Upload a file to the user's Sehpaathi folder.</p>
                     
                     <div class="parameter">
                         <span class="parameter-name">file</span>
                         <span class="parameter-type">multipart/form-data</span>
-                        <p>The file to upload (max size: 10MB)</p>
+                        <p>The file to upload (max size: 100MB)</p>
                     </div>
 
                     <h4>Response</h4>
                     <pre><code class="language-json">{
-  "success": true,
-  "file": {
-    "id": "string",
-    "name": "string",
-    "viewUrl": "string",
-    "downloadUrl": "string",
-    "createdTime": "string"
-  }
+    "success": true,
+    "file": {
+        "id": "string",
+        "name": "string",
+        "viewUrl": "string",
+        "downloadUrl": "string",
+        "createdTime": "string"
+    }
 }</code></pre>
                 </div>
 
                 <div class="endpoint">
                     <span class="method get">GET</span>
-                    <span class="endpoint-url">/api/files/list</span>
-                    <p class="description">List all files in the user's storage.</p>
+                    <span class="endpoint-url">/api/files/test-folder</span>
+                    <p class="description">Test Sehpaathi folder creation and access.</p>
 
                     <h4>Response</h4>
                     <pre><code class="language-json">{
-  "success": true,
-  "folderUrl": "string",
-  "files": [
-    {
-      "id": "string",
-      "name": "string",
-      "viewUrl": "string",
-      "downloadUrl": "string",
-      "createdTime": "string"
-    }
-  ]
+    "success": true,
+    "folderId": "string",
+    "folderUrl": "string"
 }</code></pre>
                 </div>
 
                 <div class="endpoint">
                     <span class="method delete">DELETE</span>
                     <span class="endpoint-url">/api/files/delete/:fileId</span>
-                    <p class="description">Delete a specific file.</p>
+                    <p class="description">Delete a specific file from user's Sehpaathi folder.</p>
 
                     <h4>Response</h4>
                     <pre><code class="language-json">{
-  "success": true,
-  "message": "File deleted successfully"
+    "success": true,
+    "message": "File deleted successfully"
+}</code></pre>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method delete">DELETE</span>
+                    <span class="endpoint-url">/api/files/delete-multiple</span>
+                    <p class="description">Delete multiple files at once.</p>
+
+                    <h4>Request Body</h4>
+                    <pre><code class="language-json">{
+    "fileIds": ["string"]
+}</code></pre>
+
+                    <h4>Response</h4>
+                    <pre><code class="language-json">{
+    "success": true,
+    "results": [
+        {
+            "fileId": "string",
+            "success": true
+        }
+    ]
 }</code></pre>
                 </div>
             </section>
@@ -397,43 +411,83 @@ const documentationMiddleware = (req, res) => {
                     <div class="parameter">
                         <span class="parameter-name">file</span>
                         <span class="parameter-type">multipart/form-data</span>
-                        <p>The file to upload (max size: 50MB)</p>
+                        <p>The file to upload (max size: 50MB, allowed types: PDF, PPT, PPTX, DOC, DOCX)</p>
                     </div>
                     <div class="parameter">
                         <span class="parameter-name">branch</span>
                         <span class="parameter-type">string</span>
-                        <p>Academic branch name</p>
+                        <p>Required: Academic branch name</p>
                     </div>
                     <div class="parameter">
                         <span class="parameter-name">semester</span>
                         <span class="parameter-type">string</span>
-                        <p>Semester number</p>
+                        <p>Required: Semester number</p>
                     </div>
                     <div class="parameter">
                         <span class="parameter-name">subject</span>
                         <span class="parameter-type">string</span>
-                        <p>Subject name</p>
+                        <p>Required: Subject name</p>
                     </div>
                     <div class="parameter">
                         <span class="parameter-name">category</span>
                         <span class="parameter-type">string</span>
-                        <p>File category (Class Notes, Lecture PPTs, etc.)</p>
+                        <p>Required: One of: Class Notes, Lecture PPTs, Previous Year Questions, Practical Reports, Profiency Papers, Syllabus</p>
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-url">/api/files/admin/directory-tree</span>
+                    <p class="description">Get the complete directory structure of admin files.</p>
+
+                    <h4>Response</h4>
+                    <pre><code class="language-json">{
+    "success": true,
+    "tree": {
+        "name": "root",
+        "type": "folder",
+        "children": []
+    }
+}</code></pre>
+                </div>
+
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-url">/api/files/admin/files</span>
+                    <p class="description">List files with optional filtering.</p>
+
+                    <h4>Query Parameters</h4>
+                    <div class="parameter">
+                        <span class="parameter-name">branch</span>
+                        <span class="parameter-type">string</span>
+                    </div>
+                    <div class="parameter">
+                        <span class="parameter-name">semester</span>
+                        <span class="parameter-type">string</span>
+                    </div>
+                    <div class="parameter">
+                        <span class="parameter-name">subject</span>
+                        <span class="parameter-type">string</span>
+                    </div>
+                    <div class="parameter">
+                        <span class="parameter-name">category</span>
+                        <span class="parameter-type">string</span>
                     </div>
 
                     <h4>Response</h4>
                     <pre><code class="language-json">{
-  "success": true,
-  "file": {
-    "id": "string",
-    "name": "string",
-    "viewUrl": "string",
-    "downloadUrl": "string",
-    "createdTime": "string",
-    "branch": "string",
-    "semester": "string",
-    "subject": "string",
-    "category": "string"
-  }
+    "success": true,
+    "files": [
+        {
+            "id": "string",
+            "name": "string",
+            "viewUrl": "string",
+            "downloadUrl": "string",
+            "createdTime": "string",
+            "mimeType": "string",
+            "size": "number"
+        }
+    ]
 }</code></pre>
                 </div>
             </section>
