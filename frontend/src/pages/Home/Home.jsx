@@ -14,6 +14,7 @@ import {
   Folder,
   ChevronRight,
 } from "lucide-react";
+import { DemoGif } from "../../assets";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -151,11 +152,7 @@ const Home = () => {
             </div>
             <div className="relative">
               <div className="absolute -z-10 w-full h-full bg-gradient-to-r from-blue-100 to-purple-100 blur-3xl opacity-30 rounded-full"></div>
-              <img
-                src="/assets/gif.gif"
-                alt="SEHPAATHI Demo"
-                className="w-full h-auto rounded-2xl shadow-xl"
-              />
+              <DemoGif className="w-full h-auto rounded-2xl shadow-xl" alt="Sehpaathi Demo" />
             </div>
           </div>
         </div>

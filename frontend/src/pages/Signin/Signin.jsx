@@ -7,6 +7,7 @@ import {
   clearError,
 } from "../../features/user/userSlice.js";
 import { Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
+import { Logo } from "../../assets";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -69,11 +70,7 @@ const SignIn = () => {
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="w-10 h-10 flex items-center justify-center">
-                <img
-                  src="/assets/logo.png"
-                  alt="Sehpaathi Logo"
-                  className="w-10 h-10 object-contain"
-                />
+                <Logo className="w-10 h-10 object-contain" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 SEHPAATHI

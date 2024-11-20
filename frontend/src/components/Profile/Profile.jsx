@@ -16,6 +16,7 @@ import {
   User,
   Phone,
 } from "lucide-react";
+import { Logo } from "../../assets";
 
 const Profile = ({ userName, handleLogOut }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -106,11 +107,7 @@ const Profile = ({ userName, handleLogOut }) => {
           onClick={() => toggleSidebar("profile")}
           className="flex items-center ring-1 ring-black  hover:bg-gray-100 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <img
-            src="/assets/logo.png"
-            alt="Profile"
-            className="w-10 h-10 rounded-full object-cover"
-          />
+          <Logo className="w-10 h-10 rounded-full object-cover" />
           <span className="font-medium text-gray-700">{userProfile.name}</span>
         </button>
       </div>
@@ -154,11 +151,7 @@ const Profile = ({ userName, handleLogOut }) => {
               {/* Profile Photo Section */}
               <div className="text-center">
                 <div className="relative inline-block">
-                  <img
-                    src="/assets/logo.png"
-                    alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
-                  />
+                  <Logo className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-white shadow-lg" />
                   <button
                     onClick={handlePhotoUpload}
                     className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-200"

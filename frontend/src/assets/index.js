@@ -1,0 +1,1 @@
+export { Logo, DemoGif, TeamMember } from './imageComponents';

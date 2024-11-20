@@ -12,6 +12,7 @@ import {
   Shield,
   HelpCircle,
 } from "lucide-react";
+import { Logo } from "../../assets";
 
 function Footer() {
   const currentYear = new Date().getFullYear();
@@ -58,11 +59,7 @@ function Footer() {
           {/* Logo and description */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <img
-                src="/assets/logo.png"
-                alt="SEHPAATHI Logo"
-                className="h-12 w-auto mr-4"
-              />
+              <Logo className="h-12 w-auto mr-4" alt="Sehpaathi Logo" />
               <div>
                 <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   SEHPAATHI

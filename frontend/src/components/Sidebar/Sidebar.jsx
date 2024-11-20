@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Bot, BookOpen, BookMarked, Gauge, LogOut } from "lucide-react";
+import { Logo } from "../../assets";
 
 const Sidebar = ({ selectedRole, handleSelectRole, handleLogOut }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -19,11 +20,7 @@ const Sidebar = ({ selectedRole, handleSelectRole, handleLogOut }) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-center p-3 border-b border-white/10 whitespace-nowrap">
-        <img
-          src="/assets/logo.png"
-          alt="Sehpaathi Logo"
-          className="w-10 h-10 ml-2 object-contain flex-shrink-0 transition-transform duration-300"
-        />
+      <Logo className="w-10 h-10 ml-2 object-contain flex-shrink-0 transition-transform duration-300" />
         <span
           className={`
            ml-3 font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent

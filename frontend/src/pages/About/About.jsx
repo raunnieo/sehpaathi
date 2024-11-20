@@ -1,5 +1,6 @@
 import React from "react";
 import { BookOpen, Code, Palette, Mail, MapPin, School } from "lucide-react";
+import { TeamMember } from "../../assets";
 
 const About = () => {
   const teamMembers = [
@@ -7,7 +8,6 @@ const About = () => {
       name: "Kavity",
       role: "Backend Developer",
       college: "NIT Bhopal",
-      image: "/src/assets/kavity.jpg",
       expertise: ["Python", "AI/ML", "System Architecture"],
       social: {
         github: "github.com/kavity",
@@ -18,7 +18,6 @@ const About = () => {
       name: "Raunnieo",
       role: "Frontend Developer",
       college: "MITS Gwalior",
-      image: "/src/assets/raunnieo.jpg",
       expertise: ["React", "UI/UX", "Full-Stack"],
       social: {
         github: "github.com/raunnieo",
@@ -29,7 +28,6 @@ const About = () => {
       name: "Arya",
       role: "UI/UX Designer",
       college: "MITS Gwalior",
-      image: "/src/assets/arya.jpg",
       expertise: ["Design Systems", "User Research", "Prototyping"],
       social: {
         github: "github.com/aryadesign",
@@ -109,9 +107,8 @@ const About = () => {
                 className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all group"
               >
                 <div className="relative mb-6">
-                  <img
-                    src="/assets/logo.png"
-                    alt={member.name}
+                  <TeamMember
+                    member={member.name}
                     className="w-32 h-32 rounded-full mx-auto ring-2 ring-blue-100 group-hover:ring-blue-300 transition-all"
                   />
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-100 px-3 py-1 rounded-full">
