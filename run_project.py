@@ -44,7 +44,9 @@ def start_server(name, command, cwd, port, color):
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            encoding='utf-8',
+            errors='replace'
         )
         thread = Thread(
             target=monitor_server_output,
