@@ -1,76 +1,77 @@
-import {
-  Menu,
-  X,
-  BookOpen,
-  Bot,
-  Download,
-  ChevronDown,
-  BookMarked,
-  Search,
-  LogOut,
-  Gauge,
-  Plus,
-  Edit2,
-  Trash2,
-  Link,
-  File,
-  Youtube,
-  Code,
-  Layout,
-  Image,
-  User,
-  Settings,
-  HelpCircle,
-  Bell,
-} from "lucide-react";
+import { Menu, X, BookOpen, Bot, Download, ChevronDown, BookMarked, Search, LogOut, Gauge, Plus, Edit2, Trash2, Link, File, Youtube, Code, Layout, Image, User, Settings, HelpCircle, Bell } from "lucide-react";
 
+// Resource types configuration
 const resourceTypes = [
-    { id: "bookmark", label: "Bookmark", icon: Link },
+  { id: "bookmark", label: "Bookmark", icon: Link },
+  { id: "note", label: "Note", icon: File },
+  { id: "video", label: "YouTube Video", icon: Youtube },
+  { id: "code", label: "Code Block", icon: Code },
+  { id: "project", label: "Project", icon: Layout },
+  { id: "media", label: "Media", icon: Image },
+  { id: "file", label: "File", icon: File },
+];
 
-    { id: "note", label: "Note", icon: File },
+// Study material configuration
+const MATERIAL_TYPES = [
+  "Class Notes",
+  "Lecture PPTs",
+  "Previous Year Questions",
+  "Practical Reports",
+  "Reference Books",
+  "Assignment Solutions",
+  "Study Guides",
+  "Video Lectures"
+];
 
-    { id: "video", label: "YouTube Video", icon: Youtube },
 
-    { id: "code", label: "Code Block", icon: Code },
+// Helper functions for frontend
+const getSubjectsForSemester = async (semester) => {
+  const response = await AcademicService.getSubjectsForSemester(semester);
+  return response.data;
+};
 
-    { id: "project", label: "Project", icon: Layout },
+const getSubjectsForBranch = async (branch, semester) => {
+  const response = await AcademicService.getSubjectsForBranch(branch, semester);
+  return response.data;
+};
 
-    { id: "media", label: "Media", icon: Image },
+// File upload configuration
+const fileConfig = {
+  maxFileSize: 50 * 1024 * 1024, // 50MB
+  allowedFileTypes: [
+    { type: 'application/pdf', extension: '.pdf' },
+    { type: 'application/msword', extension: '.doc' },
+    { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: '.docx' },
+    { type: 'application/vnd.ms-powerpoint', extension: '.ppt' },
+    { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', extension: '.pptx' }
+  ],
+  uploadPath: '/materials'
+};
 
-    { id: "file", label: "File", icon: File },
-  ];
+// Validation rules
+const validationRules = {
+  requiredFields: ['branch', 'semester', 'subject', 'category'],
+  fileNameMaxLength: 100,
+  maxFilesPerUpload: 10
+};
 
-  const branches = [
-    { id: "mme", name: "Materials"},
+// Material display configuration
+const displayConfig = {
+  itemsPerPage: 10,
+  sortOptions: [
+    { id: 'date', label: 'Upload Date' },
+    { id: 'name', label: 'File Name' },
+    { id: 'size', label: 'File Size' }
+  ],
+  defaultSort: 'date'
+};
 
-    { id: "CSE", name: "Computer Science Engineering" },
-
-    { id: "it", name: "Information Technology" },
-
-    { id: "ece", name: "Electronics & Communication" },
-
-    { id: "ee", name: "Electrical Engineering" },
-
-    { id: "me", name: "Mechanical Engineering" },
-  ];
-
-  const semesters = Array.from({ length: 8 }, (_, i) => ({
-    id: i + 1,
-
-    name: `Semester ${i + 1}`,
-  }));
-
-  const materialTypes = [
-    "Class Notes",
-    "Lecture PPTs",
-    "Previous Year Questions",
-    "Practical Reports",
-    "Profiency Papers",
-  ];
-
-  const subjects = [
-    { id: 'Mathematics', name: 'Mathematics' },
-    { id: 'subject2', name: 'Physics' },
-  ];
-
-  export {resourceTypes, branches, semesters, materialTypes, subjects}
+export {
+  resourceTypes,
+  MATERIAL_TYPES,
+  fileConfig,
+  validationRules,
+  displayConfig,
+  getSubjectsForSemester,
+  getSubjectsForBranch
+};

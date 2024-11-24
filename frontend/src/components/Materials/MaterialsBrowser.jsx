@@ -1,20 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { materialService } from "../../services/materialServices";
+import { academicService } from '../../services/academicService';  // Update this line
 import { 
   Download, Upload, X, FileText, Loader2, FolderOpen, Search,
-  ChevronRight, ChevronDown, ChevronLeft, Folder, File, Eye, RefreshCw
+  ChevronRight, ChevronDown, Folder, File, Eye, RefreshCw
 } from 'lucide-react';
 import { selectUserRole } from '../../features/user/userSlice';
 import { useSelector } from 'react-redux';
+import { MATERIAL_TYPES } from '../../constants';
 
 const MaterialBrowser = ({
   selectedBranch,
   setSelectedBranch,
   selectedSemester,
   setSelectedSemester,
-  branches,
-  semesters,
-  subjects,
   materialTypes
 }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -33,10 +32,49 @@ const MaterialBrowser = ({
   const [treeData, setTreeData] = useState(null);
   const userRole = useSelector(selectUserRole);
 	const fileInputRef = useRef(null)
+  const [academicConfig, setAcademicConfig] = useState(null);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [academicData, setAcademicData] = useState(null);
 
   useEffect(() => {
     fetchTreeData();
   }, []);
+
+  useEffect(() => {
+    const loadAcademicData = async () => {
+      try {
+        const response = await academicService.getInitialData();
+        if (response.success) {
+          setAcademicData(response.data);
+          setBranches(response.data.branches);
+          setSemesters(response.data.semesters);
+        } else {
+          console.error('Failed to load academic data:', response.error);
+        }
+      } catch (error) {
+        console.error('Error loading academic data:', error);
+      }
+    };
+    loadAcademicData();
+  }, []);
+
+  // Update subjects when branch or semester changes
+  useEffect(() => {
+    if (!academicData || !selectedBranch || !selectedSemester) {
+      setAvailableSubjects({});
+      return;
+    }
+
+    const filteredSubjects = academicService.filterSubjects(
+      academicData.subjects,
+      selectedBranch,
+      selectedSemester
+    );
+
+    setAvailableSubjects(filteredSubjects);
+  }, [selectedBranch, selectedSemester, academicData]);
 
   const fetchTreeData = async () => {
     setLoadingTree(true);
@@ -196,7 +234,7 @@ const MaterialBrowser = ({
       alert('Please select Branch, Semester and Subject to search');
       return;
     }
-
+  
     setLoading(true);
     setError(null);
     try {
@@ -204,86 +242,65 @@ const MaterialBrowser = ({
         selectedBranch,
         selectedSemester,
         selectedSubject,
-        selectedMaterialType
+        selectedMaterialType || undefined
       );
-
-      console.log(response)
-      if (response && typeof response.success === 'boolean') {
-        if (response.success && Array.isArray(response.files)) {
-          setFileList(response.files); // Directly use the files from the response
-        } else {
-          setFileList([]);
-          if (!response.success) {
-            setError(response.message || 'Failed to fetch files');
-          }
-        }
-      } else {
-        setFileList([]);
-        console.error('Invalid response format:', response);
-        setError('Received invalid response from server');
+  
+      // Handle the response
+      if (!response?.success) {
+        throw new Error(response?.error || 'No files found');
       }
+  
+      setFileList(response.files || []);
     } catch (err) {
       console.error('Error fetching files:', err);
-      setError('Failed to load files. Please try again.');
+      setError(err.message || 'Failed to load files. Please try again.');
       setFileList([]);
     } finally {
       setLoading(false);
     }
   };
+  
   const handleUpload = async () => {
-    if (!selectedFiles.length) {
-      alert('Please select files to upload');
+    if (!selectedFiles.length || !selectedBranch || !selectedSemester || 
+        !selectedSubject || !selectedMaterialType) {
+      alert('Please select all required fields and files');
       return;
     }
-    
-    if (!selectedBranch || !selectedSemester || !selectedSubject || !selectedMaterialType) {
-      alert('Please select all required fields (branch, semester, subject, and material type)');
-      return;
-    }
-    
+  
     setUploading(true);
     try {
       const formData = new FormData();
-      
-      // Add metadata
       formData.append('branch', selectedBranch);
       formData.append('semester', selectedSemester);
       formData.append('subject', selectedSubject);
       formData.append('category', selectedMaterialType);
-      
-      // Add files
+  
+      // Append all files to formData
       selectedFiles.forEach(fileObj => {
         formData.append('file', fileObj.file);
       });
-
+  
       const response = await materialService.uploadFiles(formData);
-      
-      if (response?.success) {
-        setSelectedFiles([]);
-        setUploadProgress({});
-        alert('Files uploaded successfully!');
-        handleSearch();
-      } else {
-        throw new Error(response?.message || 'Upload failed');
+  
+      if (!response?.success) {
+        throw new Error(response?.error || 'Upload failed');
       }
+  
+      setSelectedFiles([]);
+      setUploadProgress({});
+      alert('Files uploaded successfully!');
+      
+      // Refresh both the file tree and search results
+      await fetchTreeData();
+      await handleSearch();
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Error uploading files: ' + (error.message || 'Unknown error occurred'));
+      alert(error.message || 'Error uploading files');
     } finally {
       setUploading(false);
     }
   };
-  // Update the material type filtering function
-  const getFileCountByType = (materialType) => {
-    if (!Array.isArray(fileList)) return 0;
-    return fileList.filter(file => file.materialType === materialType).length;
-  };
-  // File list rendering section update
-  const getFilteredFiles = () => {
-    if (!Array.isArray(fileList)) return [];
-    if (!selectedMaterialType) return fileList;
-    return fileList.filter(file => file.materialType === selectedMaterialType);
-  };
+  
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -349,6 +366,47 @@ const removeFile = (fileId) => {
   //     : 0;
   // };
 
+  // Get subjects for current branch and semester
+  const getCurrentSubjects = async () => {
+    if (!selectedBranch || !selectedSemester) {
+      return [];
+    }
+    return await AcademicService.getSubjectsForBranch(selectedBranch, parseInt(selectedSemester));
+  };
+
+  // Update the renderSubjectOptions function
+  const renderSubjectOptions = () => {
+    return Object.entries(availableSubjects).map(([areaId, subjects]) => {
+      const area = academicData?.subjectAreas?.find(a => a.id === areaId);
+      if (!area || !subjects.length) return null;
+
+      return (
+        <optgroup key={areaId} label={area.name}>
+          {subjects.map(subject => (
+            <option key={subject.id} value={subject.id}>
+              {subject.code} - {subject.name}
+            </option>
+          ))}
+        </optgroup>
+      );
+    });
+  };
+
+  // Add helper text for subject select
+  const getSubjectSelectText = () => {
+    if (!selectedBranch) return "Select Branch first";
+    if (!selectedSemester) return "Select Semester first";
+    return "Select Subject";
+  };
+
+  // Reset subject selection when branch or semester changes
+  useEffect(() => {
+    setSelectedSubject('');
+  }, [selectedBranch, selectedSemester]);
+
+  // Disable subject selection until branch and semester are selected
+  const isSubjectSelectDisabled = !selectedBranch || !selectedSemester;
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
       {/* Main Content */}
@@ -362,7 +420,9 @@ const removeFile = (fileId) => {
         >
           <option value="">Select Branch</option>
           {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>{branch.name}</option>
+            <option key={branch.id} value={branch.id}>
+              {branch.name} ({branch.code})
+            </option>
           ))}
         </select>
 
@@ -373,7 +433,9 @@ const removeFile = (fileId) => {
         >
           <option value="">Select Semester</option>
           {semesters.map((sem) => (
-            <option key={sem.id} value={sem.id}>{sem.name}</option>
+            <option key={sem.id} value={sem.id}>
+              {sem.name}
+            </option>
           ))}
         </select>
 
@@ -381,11 +443,15 @@ const removeFile = (fileId) => {
           className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           onChange={(e) => setSelectedSubject(e.target.value)}
           value={selectedSubject || ""}
+          disabled={isSubjectSelectDisabled}
         >
-          <option value="">Select Subject</option>
-          {subjects.map((subject) => (
-            <option key={subject.id} value={subject.id}>{subject.name}</option>
-          ))}
+          <option value="">
+            {isSubjectSelectDisabled 
+              ? "Select Branch and Semester" 
+              : "Select Subject"
+            }
+          </option>
+          {renderSubjectOptions()}
         </select>
 
         <select
@@ -394,7 +460,7 @@ const removeFile = (fileId) => {
           value={selectedMaterialType || ""}
         >
           <option value="">Select Material Type</option>
-          {materialTypes.map((material, index) => (
+          {MATERIAL_TYPES.map((material, index) => (
             <option key={index} value={material}>{material}</option>
           ))}
         </select>
@@ -526,10 +592,6 @@ const removeFile = (fileId) => {
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
           </div>
-        ) : error ? (
-          <div className="text-red-500 text-center p-4">
-            {error}
-          </div>
         ) : !Array.isArray(fileList) || fileList.length === 0 ? (
           <div className="text-center p-8 bg-gray-50 rounded-lg">
             <FolderOpen className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -603,7 +665,7 @@ const removeFile = (fileId) => {
             key={index}
             className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
             onClick={() => setSelectedMaterialType(material)}
-          >
+          ></div>
             <Download size={20} className="text-blue-500 mb-2" />
             <h3 className="font-medium">{material}</h3>
             <p className="text-sm text-gray-500">

@@ -33,3 +33,8 @@ export const authMethods = {
   getProfile: () => 
     apiManager.get(ENDPOINTS.AUTH.PROFILE)
 };
+
+export const configMethods = {
+  getAcademicConfig: () => 
+    apiManager.get(ENDPOINTS.CONFIG.ACADEMIC),
+};

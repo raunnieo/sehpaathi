@@ -9,7 +9,6 @@ import QuickAccess from "../../components/QuickAccess,jsx/QuickAccess";
 import AIAssistant from "../../components/AI/Assistant";
 import ResourceManager from "../../components/ResourceManager/ResourceManager";
 import MaterialBrowser from "../../components/Materials/MaterialsBrowser";
-import { branches, semesters, materialTypes, subjects } from "../../constants";
 import { Loader2 } from "lucide-react";
 import { onAuthStateChanged} from "firebase/auth";
 import { auth } from "../../auth/firebase";
@@ -22,6 +21,9 @@ import { query, where } from "firebase/firestore";
 import { getDocs } from "firebase/firestore";
 import { deleteDoc } from "firebase/firestore";
 import { sendMessage } from "../../services/chatServices";
+import AcademicService from "../../services/academicService";
+import { MATERIAL_TYPES } from '../../constants';
+
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -49,6 +51,24 @@ const Dashboard = () => {
   // Materials state
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
+  const [branches, setBranches] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const config = await AcademicService.getInitialData();
+        if (config?.branches) {
+          setBranches(config.branches);
+        }
+      } catch (error) {
+        console.error("Failed to fetch academic config:", error);
+        setBranches([]);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Handlers
   const handleSelectRole = (role) => {
@@ -374,9 +394,7 @@ const Dashboard = () => {
                 selectedSemester={selectedSemester}
                 setSelectedSemester={setSelectedSemester}
                 branches={branches}
-                subjects={subjects}
-                semesters={semesters}
-                materialTypes={materialTypes}
+                materialTypes={MATERIAL_TYPES}
               />
             )}
           </main>

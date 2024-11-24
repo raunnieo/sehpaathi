@@ -27,6 +27,19 @@ class ApiManager {
     return this.handleResponse(response);
   }
 
+  async getWithoutAuth(endpoint, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${this.baseURL}${endpoint}${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }
+    });
+    return this.handleResponse(response);
+  }
+
   async post(endpoint, data, isFormData = false) {
     const url = `${this.baseURL}${endpoint}`;
     const headers = await this.getHeaders();

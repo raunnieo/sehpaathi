@@ -13,5 +13,8 @@ export const ENDPOINTS = {
     AUTH: {
       VERIFY: '/auth/verify',
       PROFILE: '/auth/profile'
+    },
+    CONFIG: {
+      ACADEMIC: '/config/academic-config',
     }
   };
