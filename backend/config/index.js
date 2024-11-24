@@ -1,17 +1,50 @@
-// const dotenv = require('dotenv');
+const dotenv = require('dotenv');
+const axios = require('axios');
 
-// dotenv.config();
+dotenv.config();
 
-// const config = {
-//   port: process.env.PORT || 5000,
-//   environment: process.env.NODE_ENV || 'development',
-//   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-//   groq: {
-//     apiKey: process.env.GROQ_API_KEY,
-//     model: 'mixtral-8x7b-32768',
-//     maxTokens: 1024,
-//     temperature: 0.7
-//   }
-// };
+// Fallback config in case the API is unavailable
+const defaultConfig = {
+  branches: ['CSE', 'ECE', 'EEE', 'MECH'],
+  semesters: ['1', '2', '3', '4', '5', '6', '7', '8'],
+  subjects: [],
+  materialTypes: ['Notes', 'Assignments', 'Question Papers', 'Resources']
+};
 
-// module.exports = config;
+const getAcademicConfig = async () => {
+  try {
+    const response = await axios.get('http://localhost:5001/api/academic-config');
+    return {
+      success: true,
+      data: response.data.data || response.data // handle both data structures
+    };
+  } catch (error) {
+    console.error('Failed to fetch academic config:', error);
+    // Return in consistent format
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      return {
+        success: false,
+        data: defaultConfig,
+        error: error.response.data.message || 'Server error'
+      };
+    } else if (error.request) {
+      // The request was made but no response was received
+      return {
+        success: false,
+        data: defaultConfig,
+        error: 'No response from server'
+      };
+    } else {
+      // Something happened in setting up the request
+      return {
+        success: false,
+        data: defaultConfig,
+        error: error.message
+      };
+    }
+  }
+};
+
+module.exports = { getAcademicConfig };

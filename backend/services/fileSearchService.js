@@ -19,7 +19,7 @@ class FileSearchService {
 
     // Extract branch from query if not in filters
     if (!filters.branch) {
-      const branchMatch = query.match(/\b(CSE|IT|ECE|EE|MME)\b/i);
+      const branchMatch = query.match(/\b(CSD|CSE|IT|ECE|EE|ME|MME)\b/i);
       if (branchMatch) {
         filters.branch = branchMatch[0].toUpperCase();
       }

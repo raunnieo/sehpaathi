@@ -1,18 +1,19 @@
 const DriveService = require('./services/driveService');
+const { branches } = require('../shared/academicConfig');
 
 async function initializeServices() {
   try {
     console.log('Initializing services...');
     const tree = await DriveService.initializeFileStructure();
     
-    // Verify structure
+    // Verify structure and use branches from config
     if (!tree || !tree.children) {
       throw new Error('Invalid file structure generated');
     }
     
     console.log('File structure stats:', {
       totalFiles: countFiles(tree),
-      branches: tree.children.map(c => c.name).join(', ')
+      branches: branches.map(b => b.name).join(', ')
     });
     
     console.log('Services initialized successfully');

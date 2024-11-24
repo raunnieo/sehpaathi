@@ -8,6 +8,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const path = require('path');
 const { createServer } = require('http');
+const { getAcademicConfig } = require('./config');
 
 // Initialize Express app
 const app = express();
@@ -116,6 +117,25 @@ app.use('/api/files', require('./routes/files'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/docs', require('./routes/docs'));
 app.use('/health', require('./routes/health'));
+
+// Update the route to handle async
+app.get('/api/config/academic-config', async (req, res) => {
+    try {
+        const result = await getAcademicConfig();
+        if (result.success) {
+            return res.json(result.data);
+        } else {
+            // Still return 200 with default config
+            return res.status(200).json(result.data);
+        }
+    } catch (error) {
+        console.error('Academic config error:', error);
+        return res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message || 'Failed to get academic config'
+        });
+    }
+});
 
 app.get('/', (req, res) => {
     res.send(`

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const { verifyToken } = require('../middleware/auth');
 const DriveService = require('../services/driveService');
+const AcademicConfig = require('../config/academicConfig');
 
 // Configure Multer to store file in memory
 const upload = multer({ 
@@ -215,11 +216,25 @@ router.use((error, req, res, next) => {
   });
 });
 
+// Replace academic config route
+router.get('/academic-config', verifyToken, async (req, res) => {
+  try {
+    const config = await AcademicConfig.getConfig();
+    res.json({
+      success: true,
+      data: config
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch academic configuration"
+    });
+  }
+});
 
 // Admin upload route
 router.post('/admin/upload', 
   verifyToken, 
-  // Add admin verification middleware here
   adminUpload.single('file'), 
   async (req, res) => {
     try {
@@ -229,26 +244,56 @@ router.post('/admin/upload',
 
       const { branch, semester, subject, category } = req.body;
 
+      console.log('Received upload request:', {
+        branch,
+        semester,
+        subject,
+        category,
+        fileName: req.file.originalname
+      });
+
       // Validate required fields
       if (!branch || !semester || !subject || !category) {
         return res.status(400).json({ 
-          error: "Missing required fields. Please provide branch, semester, subject, and category." 
+          error: "Missing required fields",
+          received: { branch, semester, subject, category }
+        });
+      }
+
+      // Get academic config and validate subject
+      const semesterNum = parseInt(semester);
+      const subjects = await AcademicConfig.getConfig();
+      const semesterData = subjects[semesterNum];
+      
+      if (!semesterData) {
+        return res.status(400).json({
+          error: `Invalid semester: ${semester}`,
+          validSemesters: Object.keys(subjects)
+        });
+      }
+
+      // Get subject data
+      const subjectData = await AcademicConfig.getSubjectById(subject, semesterNum);
+      if (!subjectData) {
+        return res.status(400).json({
+          error: `Invalid subject "${subject}" for semester ${semester}`
         });
       }
 
       // Validate category
       if (!VALID_CATEGORIES.includes(category)) {
-        return res.status(400).json({ 
-          error: "Invalid category. Must be one of: " + VALID_CATEGORIES.join(", ") 
+        return res.status(400).json({
+          error: "Invalid category",
+          validCategories: VALID_CATEGORIES
         });
       }
 
-      // Upload file with folder structure
+      // Upload file with folder structure using the validated subject data
       const file = await DriveService.uploadAdminFile(
         req.file,
         branch,
-        semester,
-        subject,
+        parseInt(semester),
+        subjectData, // Pass the entire subject object
         category
       );
 
@@ -262,7 +307,7 @@ router.post('/admin/upload',
           createdTime: file.createdTime,
           branch: file.branch,
           semester: file.semester,
-          subject: file.subject,
+          subject: subjectData.code,
           category: file.category
         }
       });
@@ -270,7 +315,8 @@ router.post('/admin/upload',
       console.error("Admin file upload error:", error);
       res.status(500).json({ 
         error: "File upload failed",
-        message: error.message 
+        message: error.message,
+        details: error.stack
       });
     }
 });
@@ -279,8 +325,31 @@ router.post('/admin/upload',
 router.get('/admin/files', verifyToken, async (req, res) => {
   try {
     const { branch, semester, subject, category } = req.query;
-    const files = await DriveService.listAdminFiles(branch, semester, subject, category);
     
+    if (!branch || !semester || !subject || !category) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required parameters"
+      });
+    }
+
+    const subjectData = await AcademicConfig.getSubjectById(subject, parseInt(semester));
+
+    // Get files using subject code
+    const files = await DriveService.listAdminFiles(
+      branch, 
+      parseInt(semester), 
+      subjectData.code, // Use subject code
+      category
+    );
+    
+    if (!files || files.length === 0) {
+      return res.json({
+        success: true,
+        files: []
+      });
+    }
+
     res.json({
       success: true,
       files: files.map(file => ({
@@ -293,59 +362,15 @@ router.get('/admin/files', verifyToken, async (req, res) => {
         size: file.size,
       }))
     });
+
   } catch (error) {
     console.error("Admin file listing error:", error);
-    res.status(500).json({ error: "Failed to retrieve file list" });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || "Failed to retrieve file list"
+    });
   }
 });
-
-// Route to get available branches
-// router.get('/admin/files', verifyToken, async (req, res) => {
-//   try {
-//     const { branch, semester, subject, category } = req.query;
-
-//     // Validate query parameters
-//     if (!branch || !semester || !subject || !category) {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Missing required filters: branch, semester, subject, or category",
-//       });
-//     }
-
-//     // Fetch files from DriveService based on filters
-//     const files = await DriveService.listAdminFiles(branch, semester, subject, category);
-
-//     if (!files || files.length === 0) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "No files found for the given filters",
-//       });
-//     }
-
-//     // Map the files to the desired response format
-//     const formattedFiles = files.map(file => ({
-//       id: file.id,
-//       name: file.name,
-//       viewUrl: file.webViewLink,
-//       downloadUrl: file.downloadUrl,
-//       createdTime: file.createdTime,
-//       mimeType: file.mimeType,
-//       size: file.size,
-//     }));
-
-//     // Send response
-//     res.json({
-//       success: true,
-//       files: formattedFiles,
-//     });
-//   } catch (error) {
-//     console.error("Error in /admin/files:", error.message);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to retrieve file list",
-//     });
-//   }
-// });
 
 // Route to get subjects for a branch and semester
 router.get('/admin/subjects', verifyToken, async (req, res) => {

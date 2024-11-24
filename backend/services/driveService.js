@@ -2,6 +2,7 @@ const { drive } = require('../config/googleDrive');
 const streamifier = require('streamifier');
 const groqService = require('./groq');
 const fileSearchService = require('./fileSearchService');
+const AcademicConfig = require('../config/academicConfig');
 
 class DriveService {
   static async setPermissions(fileId, userEmail = null) {
@@ -158,43 +159,12 @@ class DriveService {
         downloadUrl: file.data.webContentLink
       };
     } catch (error) {
+      console.error('Failed to get file:', error);
       throw new Error('Failed to get file: ' + error.message);
     }
   }
-//   static async deleteFile(uid, fileId) {
-//     try {
-//       // First verify if the file is in user's Sehpaathi folder
-//       const folderId = await this.ensureSehpaathiFolder(uid);
-      
-//       const file = await drive.files.get({
-//         fileId: fileId,
-//         fields: 'parents'
-//       });
-//       console.log("Sehpaathi Folder ID:", folderId);
-//       console.log("File Parents:", file.data.parents);
-//       console.log("File ID", fileId);
-      
-      
-//       if (!file.data.parents || !file.data.parents.includes(folderId)) {
-//         throw new Error('File not found in user\'s Sehpaathi folder');
-//         // throw new Error(!file.data.parents)
-//       }
 
-//       // Delete the file
-//       await drive.files.delete({
-//         fileId: fileId
-//       });
-
-//       return { success: true, message: 'File deleted successfully' };
-//     } catch (error) {
-//       if (error.code === 404) {
-//         throw new Error('File not found');
-//       }
-//       throw new Error('Failed to delete file: ' + error.message);
-//     }
-//   }
-
-static async deleteFile(uid, fileId) {
+  static async deleteFile(uid, fileId) {
     try {
       // Extract and log the Sehpaathi folder ID
       const { id: folderId } = await this.ensureSehpaathiFolder(uid);
@@ -295,77 +265,76 @@ static async deleteFile(uid, fileId) {
     }
   }
 
-  static async ensureSubFolder(parentFolderId, folderName) {
+  static async ensureSubFolder(parentFolderId, folderName, isSubject = false, subjectData = null) {
     try {
-      // Check if folder already exists in the parent folder
+      // If it's a subject folder, use the code - name format
+      const finalFolderName = isSubject && subjectData 
+        ? `${subjectData.code.toUpperCase()} - ${subjectData.name}`  // Format: MTH101 - Engineering Mathematics I
+        : folderName;
+
+      // Check if folder exists
       const folderQuery = await drive.files.list({
-        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`,
+        q: `name='${finalFolderName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`,
         fields: 'files(id, name, webViewLink)',
       });
-  
-      // If folder exists, return its details
+
       if (folderQuery.data.files.length > 0) {
-        const existingFolder = {
+        return {
           id: folderQuery.data.files[0].id,
           webViewLink: folderQuery.data.files[0].webViewLink,
         };
-  
-        console.log(`Subfolder '${folderName}' already exists in parent folder`, existingFolder);
-  
-        // Ensure permissions are set correctly even for existing folders
-        // await this.setPermissions(existingFolder.id, 'kd.kavyansh2003@gmail.com'); // Replace with the email
-        return existingFolder;
       }
-  
-      console.log(`Creating new subfolder '${folderName}' in parent folder`);
-  
-      // Create new subfolder
+
+      // Create new folder with code if it's a subject
       const folderMetadata = {
-        name: folderName,
+        name: finalFolderName,
         mimeType: 'application/vnd.google-apps.folder',
         parents: [parentFolderId],
       };
-  
+
       const folder = await drive.files.create({
         resource: folderMetadata,
         fields: 'id, name, webViewLink',
       });
-  
-      // Set permissions for the new folder
-      // await this.setPermissions(folder.data.id, 'kd.kavyansh2003@gmail.com'); // Replace with the email
-  
-      console.log(`Subfolder created with ID: ${folder.data.id}`);
+
       return {
         id: folder.data.id,
         webViewLink: folder.data.webViewLink,
       };
     } catch (error) {
       console.error(`Failed to ensure subfolder '${folderName}':`, error);
-      throw new Error(`Failed to ensure subfolder '${folderName}': ${error.message}`);
+      throw error;
     }
   }
   
 
-  static async uploadAdminFile(file, branch, semester, subject, category) {
+  static async uploadAdminFile(file, branch, semester, subjectData, category) {
     try {
-      // Create/get main admin folder
-      const adminFolder = await this.ensureAdminFolder();
-      
-      // Create/get branch folder
-      const branchFolder = await this.ensureSubFolder(adminFolder.id, branch);
-      
-      // Create/get semester folder
-      const semesterFolder = await this.ensureSubFolder(branchFolder.id, `Semester ${semester}`);
+      const semesterNum = parseInt(semester);
+      if (isNaN(semesterNum)) {
+        throw new Error(`Invalid semester format: ${semester}`);
+      }
 
-      // Create/get subject folder
-      const subjectFolder = await this.ensureSubFolder(semesterFolder.id, subject);
+      // No need to validate subject here since we're receiving the validated subject object
+      const adminFolder = await this.ensureAdminFolder();
+      const branchFolder = await this.ensureSubFolder(adminFolder.id, branch);
+      const semesterFolder = await this.ensureSubFolder(branchFolder.id, `Semester ${semesterNum}`);
+
+      // Create subject folder with consistent naming format
+      const subjectFolderName = `${subjectData.code.toUpperCase()} - ${subjectData.name}`;
+      const subjectFolder = await this.ensureSubFolder(
+        semesterFolder.id, 
+        subjectFolderName,
+        true,
+        subjectData
+      );
       
-      // Create/get category folder (Class Notes, Lecture PPTs, etc.)
+      // Create category folder
       const categoryFolder = await this.ensureSubFolder(subjectFolder.id, category);
 
-      // Upload file to the category folder
+      // Use consistent naming for files too
       const fileMetadata = {
-        name: file.originalname,
+        name: `${subjectData.code.toUpperCase()}_${file.originalname}`,
         parents: [categoryFolder.id],
       };
 
@@ -386,12 +355,13 @@ static async deleteFile(uid, fileId) {
       console.log('File uploaded, refreshing directory structure...');
       await this.refreshDirectoryTree();
 
+      // Return with correct subject reference
       return {
         ...uploadedFile.data,
         downloadUrl: uploadedFile.data.webContentLink,
         branch,
-        semester,
-        subject,
+        semester: semesterNum,
+        subject: subjectData.code,  // Use the code from subjectData
         category
       };
     } catch (error) {
@@ -413,7 +383,7 @@ static async deleteFile(uid, fileId) {
     }
   }
 
-  static startPeriodicRefresh(intervalMinutes = 5) {
+  static startPeriodicRefresh(intervalMinutes = 10) {
     setInterval(async () => {
       try {
         await this.refreshDirectoryTree();
@@ -425,6 +395,8 @@ static async deleteFile(uid, fileId) {
 
   static async listAdminFiles(branch = null, semester = null, subject = null, category = null) {
     try {
+      console.log('Listing admin files with params:', { branch, semester, subject, category });
+      
       const adminFolder = await this.ensureAdminFolder();
       let targetFolderId = adminFolder.id;
   
@@ -437,7 +409,31 @@ static async deleteFile(uid, fileId) {
           targetFolderId = semesterFolder.id;
   
           if (subject) {
-            const subjectFolder = await this.ensureSubFolder(semesterFolder.id, subject);
+            // Get all subject folders
+            const subjectFoldersResponse = await drive.files.list({
+              q: `'${semesterFolder.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+              fields: 'files(id, name)',
+            });
+
+            console.log('Available subject folders:', subjectFoldersResponse.data.files);
+
+            // Updated folder matching logic to find the correct format
+            const subjectFolder = subjectFoldersResponse.data.files.find(folder => {
+              const folderParts = folder.name.split(' - ');
+              // Check for proper format: CODE - Name (where Name is not the same as CODE)
+              if (folderParts.length !== 2) return false;
+              
+              const [folderCode, folderName] = folderParts;
+              return folderCode.toLowerCase() === subject.toLowerCase() && 
+                     folderName.toLowerCase() !== folderCode.toLowerCase();
+            });
+
+            if (!subjectFolder) {
+              console.log('No matching subject folder found with proper format');
+              return [];
+            }
+
+            console.log('Found subject folder:', subjectFolder);
             targetFolderId = subjectFolder.id;
   
             if (category) {
@@ -447,12 +443,16 @@ static async deleteFile(uid, fileId) {
           }
         }
       }
+
+      console.log('Searching in folder:', targetFolderId);
   
       const response = await drive.files.list({
         q: `'${targetFolderId}' in parents and trashed=false`,
         fields: 'files(id, name, webViewLink, webContentLink, createdTime, size, mimeType)',
         orderBy: 'createdTime desc',
       });
+
+      console.log(`Found ${response.data.files.length} files`);
   
       return response.data.files.map(file => ({
         id: file.id,
@@ -460,12 +460,13 @@ static async deleteFile(uid, fileId) {
         webViewLink: file.webViewLink,
         webContentLink: file.webContentLink,
         createdTime: file.createdTime,
-        size: file.size, // Include file size explicitly
+        size: file.size,
         mimeType: file.mimeType,
-        downloadUrl: file.webContentLink, // Alias for convenience
+        downloadUrl: file.webContentLink,
       }));
     } catch (error) {
-      throw new Error('Failed to list admin files: ' + error.message);
+      console.error('List admin files error:', error);
+      throw error;
     }
   }
   
