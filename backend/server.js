@@ -259,7 +259,7 @@ app.use((err, req, res, next) => {
 // Global error handler
 app.use((err, req, res, next) => {
     logger.error(err.stack);
-    res.status(err.status || 500).json({
+    res.status(err.statusCode || 500).json({
         error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
         requestId: req.id
     });

@@ -3,9 +3,12 @@ const logger = require('../utils/logger');
 const { AppError } = require('../utils/errors');
 require('dotenv').config();
 
-class GroqService {
-  constructor() {
+class GroqService {  constructor() {
     if (!GroqService.instance) {
+      if (!process.env.GROQ_API_KEY) {
+        throw new AppError('GROQ_API_KEY environment variable is not set', 500);
+      }
+      
       this.client = new Groq({
         apiKey: process.env.GROQ_API_KEY 
       });
@@ -29,9 +32,8 @@ class GroqService {
   clearHistory() {
     this.conversationHistory = [];
   }
-
   async generateResponse(message) {
-    const systemPrompt =`You are Sehpaathi, an AI study assistant at MITS Gwalior, developed by a team of developers at MITS. Remember to:
+    const systemPrompt = `You are Sehpaathi, an AI study assistant at MITS Gwalior, developed by a team of developers at MITS. Remember to:
 
     - Structure responses with clear headings using # and ## for main points
     - Use **bold** for key concepts and *italic* for emphasis
@@ -43,7 +45,7 @@ class GroqService {
     - Provide relatable examples from engineering contexts
     - End responses with encouraging messages or next steps
     
-    Maintain a friendly, supportive tone while delivering accurate technical information.`;;
+    Maintain a friendly, supportive tone while delivering accurate technical information.`;
 
     try {
       const messages = [
@@ -54,11 +56,9 @@ class GroqService {
 
       // Log the request payload for debugging
       logger.info('Sending request to Groq API');
-      logger.debug('Complete message history:', messages);
-
-      const completion = await this.client.chat.completions.create({
+      logger.debug('Complete message history:', messages);      const completion = await this.client.chat.completions.create({
         messages: messages,
-        model: 'mixtral-8x7b-32768',
+        model: 'llama3-70b-8192',
         temperature: 0.3,
         max_tokens: 1024
       });
@@ -68,12 +68,32 @@ class GroqService {
       this.addToHistory({ role: 'user', content: message });
       this.addToHistory({ role: 'assistant', content: responseMessage.content });
 
-      return responseMessage;
-    } catch (error) {
+      return responseMessage;    } catch (error) {
       logger.error('Groq API error:', error.message);
+      
+      // Log more detailed error information
       if (error.response) {
+        logger.error('Groq API response status:', error.response.status);
         logger.error('Groq API response data:', error.response.data);
       }
+      if (error.request) {
+        logger.error('Groq API request failed - no response received');
+      }
+      if (error.code) {
+        logger.error('Groq API error code:', error.code);
+      }
+      
+      // Check for specific error types
+      if (error.message.includes('API key')) {
+        throw new AppError('Invalid API key configuration', 401);
+      }
+      if (error.message.includes('rate limit')) {
+        throw new AppError('API rate limit exceeded. Please try again later.', 429);
+      }
+      if (error.message.includes('quota')) {
+        throw new AppError('API quota exceeded. Please try again later.', 403);
+      }
+      
       throw new AppError('Failed to generate response due to an API error', 503);
     }
   }
