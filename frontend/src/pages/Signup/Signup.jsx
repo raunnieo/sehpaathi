@@ -77,7 +77,7 @@ const Signup = () => {
       setIsLoading(false);
     }
   };  return (
-    <div className={`min-h-screen relative overflow-hidden flex items-center justify-center p-4 ${
+    <div className={`min-h-screen relative flex items-center justify-center p-4 ${
       isDark ? 'bg-gray-900' : 'bg-gray-50'
     }`}>
       {/* Background decorations */}
@@ -93,7 +93,7 @@ const Signup = () => {
         }`}></div>
       </div>
 
-      <div className={`relative z-10 backdrop-blur-xl border rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl max-h-[95vh] overflow-y-auto ${
+      <div className={`relative z-10 backdrop-blur-xl border rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl ${
         isDark 
           ? 'bg-gray-800/70 border-gray-700/50 shadow-black/20'
           : 'bg-white/70 border-white/60 shadow-gray-500/10'

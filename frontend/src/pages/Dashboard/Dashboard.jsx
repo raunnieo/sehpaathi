@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { signOut, selectUserName } from "../../features/user/userSlice";
+import { logout, selectUserName } from "../../features/user/userSlice";
+import { authService } from "../../auth/authService";
 import { useTheme } from "../../contexts/useTheme";
 import { Loader2 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
@@ -44,9 +45,20 @@ const Dashboard = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handleLogOut = () => {
-    dispatch(signOut());
-    navigate('/signin');
+  const handleLogOut = async () => {
+    try {
+      // Sign out from Firebase first
+      await authService.signOut();
+      // Clear Redux state
+      dispatch(logout());
+      // Navigate to signin
+      navigate('/signin');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      // Even if there's an error, clear Redux state and navigate
+      dispatch(logout());
+      navigate('/signin');
+    }
   };
   if (loading) {
     return (

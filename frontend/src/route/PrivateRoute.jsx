@@ -1,14 +1,28 @@
 // PrivateRoute.js
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { selectIsAuthenticated } from "../features/user/userSlice.js";
+import { selectIsAuthenticated, selectProfile } from "../features/user/userSlice.js";
 
 const PrivateRoute = ({ element }) => {
+  const location = useLocation();
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const profile = useSelector(selectProfile);
 
   // Redirect to /signin if the user is not authenticated
-  return isAuthenticated ? element : <Navigate to="/signin" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  // If trying to access dashboard and profile is not complete AND user hasn't skipped, redirect to customize-profile
+  if (location.pathname.startsWith('/dashboard')) {
+    const shouldRedirect = !profile?.isProfileComplete && !profile?.profileSkipped;
+    if (shouldRedirect) {
+      return <Navigate to="/customize-profile" replace />;
+    }
+  }
+
+  return element;
 };
 
 export default PrivateRoute;

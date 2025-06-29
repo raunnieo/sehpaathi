@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { doc, setDoc } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
+import { db, auth } from "../../auth/firebase";
+import { setUserInfo } from "../../features/user/userSlice";
 import { 
   User, 
   Mail, 
@@ -20,13 +25,17 @@ import {
   Target
 } from "lucide-react";
 import { useTheme } from "../../contexts/useTheme";
+import ProfileCompletionCard from "../../components/ProfileCompletionCard/ProfileCompletionCard";
 
 const Profile = () => {
   const { user, userProfile, userName } = useOutletContext();
   const { isDark } = useTheme();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState({
-    displayName: userProfile?.displayName || user?.displayName || userName || "User",
+    displayName: userProfile?.displayName || user?.displayName || userName || user?.email?.split('@')[0] || "User",
     email: user?.email || "",
     phone: userProfile?.phone || "",
     location: userProfile?.location || "",
@@ -64,15 +73,126 @@ const Profile = () => {
     }));
   };
 
-  const handleSave = () => {
-    // Here you would typically save to backend
-    setIsEditing(false);
-    console.log("Saving profile data:", profileData);
+  const handleSave = async () => {
+    if (!auth.currentUser) {
+      console.error("No authenticated user");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Ensure displayName is not empty - fallback to email if needed
+      const displayName = profileData.displayName.trim() || 
+                          user?.email?.split('@')[0] || 
+                          "User";
+
+      // Update Firebase Auth profile
+      await updateProfile(auth.currentUser, {
+        displayName: displayName
+      });
+
+      // Calculate if profile is now complete based on current data (same logic as userSlice)
+      const requiredFields = [
+        displayName,
+        profileData.gender || userProfile?.gender,
+        (profileData.role || userProfile?.role) && 
+        (profileData.role || userProfile?.role) !== "none" && 
+        (profileData.role || userProfile?.role) !== "",
+        profileData.location,
+        profileData.phone,
+        profileData.bio,
+        userProfile?.profilePictureUrl || userProfile?.avatarGradient
+      ];
+      
+      const completedFields = requiredFields.filter(field => field && field.toString().trim()).length;
+      const isNowComplete = completedFields === requiredFields.length;
+
+      // Update Firestore document
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      const currentTime = new Date();
+      const updatedProfileData = {
+        uid: auth.currentUser.uid,
+        displayName: displayName,
+        email: auth.currentUser.email,
+        // Preserve existing fields that aren't editable in this form
+        gender: userProfile?.gender || "",
+        role: userProfile?.role || "",
+        // Update editable fields
+        phone: profileData.phone || "",
+        location: profileData.location || "",
+        bio: profileData.bio || "",
+        studyGoal: profileData.studyGoal || "",
+        preferredSubjects: profileData.preferredSubjects || [],
+        // Preserve profile picture data
+        profilePictureUrl: userProfile?.profilePictureUrl || "",
+        avatarGradient: userProfile?.avatarGradient || "",
+        // Update profile completion based on current data
+        isProfileComplete: isNowComplete,
+        profileSkipped: userProfile?.profileSkipped || false,
+        // Update timestamp
+        updatedAt: currentTime,
+        // Preserve creation timestamp if it exists
+        ...(userProfile?.createdAt && { createdAt: userProfile.createdAt })
+      };
+
+      await setDoc(userDocRef, updatedProfileData, { merge: true });
+
+      // Convert dates to timestamps for Redux (serializable)
+      const serializableProfileData = {
+        ...updatedProfileData,
+        createdAt: updatedProfileData.createdAt ? 
+          (updatedProfileData.createdAt instanceof Date ? 
+            updatedProfileData.createdAt.getTime() : 
+            updatedProfileData.createdAt) : undefined,
+        updatedAt: updatedProfileData.updatedAt.getTime()
+      };
+
+      // Update Redux store with serializable data only
+      dispatch(setUserInfo({
+        user: {
+          uid: user?.uid,
+          email: user?.email,
+          emailVerified: user?.emailVerified,
+          displayName: displayName,
+          photoURL: user?.photoURL,
+          phoneNumber: user?.phoneNumber
+        },
+        profileData: serializableProfileData
+      }));
+
+      // Update local state with the saved values
+      setProfileData(prev => ({
+        ...prev,
+        displayName: displayName
+      }));
+
+      setIsEditing(false);
+      console.log("Profile saved successfully");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Error saving profile. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset any unsaved changes
+    // Reset to current user data, ensuring displayName fallback
+    setProfileData({
+      displayName: userProfile?.displayName || user?.displayName || userName || user?.email?.split('@')[0] || "User",
+      email: user?.email || "",
+      phone: userProfile?.phone || "",
+      location: userProfile?.location || "",
+      bio: userProfile?.bio || "",
+      joinDate: user?.metadata?.creationTime || new Date().toISOString(),
+      studyGoal: userProfile?.studyGoal || "",
+      preferredSubjects: userProfile?.preferredSubjects || []
+    });
+  };
+
+  const handleCompleteProfile = () => {
+    navigate('/customize-profile');
   };
 
   const formatDate = (dateString) => {
@@ -84,6 +204,13 @@ const Profile = () => {
   };  return (
     <div className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : 'bg-gray-50'} pb-16 lg:pb-0`}>
       <div className="max-w-4xl mx-auto p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+        
+        {/* Profile Completion Card */}
+        <ProfileCompletionCard 
+          profile={userProfile} 
+          onCompleteProfile={handleCompleteProfile}
+        />
+
         {/* Header */}
         <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
@@ -186,10 +313,20 @@ const Profile = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSave}
-                    className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm rounded-lg transition-colors"
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-xs sm:text-sm rounded-lg transition-colors"
                   >
-                    <Save className="w-3 h-3 sm:w-4 sm:h-4" />
-                    Save
+                    {isSaving ? (
+                      <>
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3 h-3 sm:w-4 sm:h-4" />
+                        Save
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={handleCancel}

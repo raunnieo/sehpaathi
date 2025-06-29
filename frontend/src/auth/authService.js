@@ -47,6 +47,7 @@ export const authService = {
         email: user.email,
         role,
         name,
+        isProfileComplete: false, // New users need to complete their profile
         createdAt: Date.now(), // Store as milliseconds timestamp
       };
 
@@ -62,7 +63,7 @@ export const authService = {
           email: user.email,
           emailVerified: user.emailVerified,
         },
-        profile,
+        profile, // This already has createdAt as milliseconds
       };
     } catch (error) {
       throw error;
@@ -101,6 +102,7 @@ export const authService = {
           email: user.email,
           role: defaultRole,
           name: user.displayName || "",
+          isProfileComplete: false, // New users need to complete their profile
           createdAt: Date.now(), // Store as milliseconds timestamp
         };
 
@@ -116,7 +118,7 @@ export const authService = {
           email: user.email,
           emailVerified: user.emailVerified,
         },
-        profile,
+        profile, // This already has createdAt as milliseconds
       };
     } catch (error) {
       throw error;
