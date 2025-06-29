@@ -33,7 +33,7 @@ class GroqService {  constructor() {
     this.conversationHistory = [];
   }
   async generateResponse(message) {
-    const systemPrompt = `You are Sehpaathi, an AI study assistant at MITS Gwalior, developed by a team of developers at MITS. Remember to:
+    const systemPrompt = `You are Sehpaathi, an AI study assistant customised as per your college, developed by a team of passionate developers. Remember to:
 
     - Structure responses with clear headings using # and ## for main points
     - Use **bold** for key concepts and *italic* for emphasis

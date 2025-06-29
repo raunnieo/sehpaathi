@@ -1,6 +1,6 @@
-import React from "react";
 import Header from "./components/Header/Header";
 import Footer from "./components/Footer/Footer";
+import ThemeToggle from "./components/ThemeToggle/ThemeToggle";
 import { Outlet, useLocation } from "react-router-dom";
 
 const Layout = () => {
@@ -8,13 +8,14 @@ const Layout = () => {
   const hideHeaderFooter =
     location.pathname === "/signin" ||
     location.pathname === "/signup" ||
-    location.pathname === "/dashboard";
-
+    location.pathname === "/customize-profile" ||
+    location.pathname.startsWith("/dashboard");
   return (
     <div>
       {!hideHeaderFooter && <Header />}
       <Outlet />
       {!hideHeaderFooter && <Footer />}
+      <ThemeToggle />
     </div>
   );
 };

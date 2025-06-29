@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
 import "./index.css";
 import {
   Route,
@@ -11,6 +10,7 @@ import {
 
 import { Provider } from "react-redux";
 import { store } from "./app/store.js";
+import { ThemeProvider } from "./contexts/ThemeContext.jsx";
 import Home from "./pages/Home/Home.jsx";
 import Signup from "./pages/Signup/Signup.jsx";
 import About from "./pages/About/About.jsx";
@@ -19,6 +19,14 @@ import Layout from "./Layout.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PrivateRoute from "./route/PrivateRoute.jsx";
 import Error from "./pages/Error/Error.jsx";
+import UserCustomization from "./pages/UserCustomization/UserCustomization.jsx";
+
+// Dashboard Pages
+import DashboardHome from "./pages/Dashboard/DashboardHome.jsx";
+import AIChat from "./pages/Dashboard/AIChat.jsx";
+import Resources from "./pages/Dashboard/Resources.jsx";
+import Materials from "./pages/Dashboard/Materials.jsx";
+import Profile from "./pages/Dashboard/Profile.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -27,18 +35,27 @@ const router = createBrowserRouter(
       <Route path="/signup" element={<Signup />} />
       <Route path="/signin" element={<Signin />} />
       <Route path="/about" element={<About />} />
+      <Route path="/customize-profile" element={<PrivateRoute element={<UserCustomization />} />} />
       <Route
         path="/dashboard"
         element={<PrivateRoute element={<Dashboard />} />}
-      />
+      >
+        <Route index element={<DashboardHome />} />
+        <Route path="chat" element={<AIChat />} />
+        <Route path="resources" element={<Resources />} />
+        <Route path="materials" element={<Materials />} />
+        <Route path="profile" element={<Profile />} />
+      </Route>
     </Route>
   )
 );
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <RouterProvider router={router} />
-    </Provider>
+    <ThemeProvider>
+      <Provider store={store}>
+        <RouterProvider router={router} />
+      </Provider>
+    </ThemeProvider>
   </React.StrictMode>
 );

@@ -20,8 +20,8 @@ const loadInitialState = () => {
         user: userData.user,
         profile: userData.profile,
         isAuthenticated: true,
-      };
-    } catch (e) {
+      };    } catch (error) {
+      console.error("Error parsing user cookie:", error);
       return { user: null, profile: null, isAuthenticated: false };
     }
   }
@@ -49,7 +49,7 @@ export const signInWithEmail = createAsyncThunk(
 // Async thunk for Google sign in
 export const signInWithGoogle = createAsyncThunk(
   "user/signInWithGoogle",
-  async () => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await authService.signInWithGoogle();
       // console.log(response);
@@ -83,6 +83,20 @@ const userSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    setUserInfo: (state, action) => {
+      state.user = action.payload.user || state.user;
+      state.profile = { ...state.profile, ...action.payload.profileData };
+      state.isAuthenticated = true;
+      
+      // Update cookies with new data
+      const userData = {
+        user: state.user,
+        profile: state.profile
+      };
+      Cookies.set("user", JSON.stringify(userData), {
+        expires: COOKIE_EXPIRY,
+      });
     },
   },
   extraReducers: (builder) => {
@@ -130,7 +144,7 @@ const userSlice = createSlice({
   },
 });
 
-export const { clearError } = userSlice.actions;
+export const { clearError, setUserInfo } = userSlice.actions;
 export const selectUser = (state) => state.user.user;
 export const selectProfile = (state) => state.user.profile;
 export const selectUserName = (state) => state.user.profile?.name;

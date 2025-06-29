@@ -1,7 +1,9 @@
-import React from 'react';
 import { Bot, BookOpen, BookMarked } from 'lucide-react';
+import { useTheme } from '../../contexts/useTheme';
+import PropTypes from 'prop-types';
 
 const QuickAccess = ({ handleSelectRole }) => {
+  const { isDark } = useTheme();
   const cards = [
     {
       id: "sehpaathi",
@@ -45,17 +47,16 @@ const QuickAccess = ({ handleSelectRole }) => {
           gradient,
           buttonClasses,
           buttonText,
-        }) => (
-          <div
+        }) => (          <div
             key={id}
-            className={`bg-gradient-to-r ${gradient} rounded-xl p-6 text-white`}
+            className={`bg-gradient-to-r ${gradient} rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] backdrop-blur-xl border ${isDark ? 'border-white/10' : 'border-transparent'}`}
           >
             <Icon size={32} />
             <h3 className="text-xl font-bold mt-4">{title}</h3>
             <p className="mt-2 opacity-90">{description}</p>
             <button
               onClick={() => handleSelectRole(id)}
-              className={`mt-4 px-4 py-2 rounded-lg font-medium transition-colors ${buttonClasses}`}
+              className={`mt-4 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl backdrop-blur-xl ${buttonClasses}`}
             >
               {buttonText}
             </button>
@@ -64,6 +65,10 @@ const QuickAccess = ({ handleSelectRole }) => {
       )}
     </div>
   );
+};
+
+QuickAccess.propTypes = {
+  handleSelectRole: PropTypes.func.isRequired,
 };
 
 export default QuickAccess;
