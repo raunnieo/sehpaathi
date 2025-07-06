@@ -1,12 +1,6 @@
-/* stylelint-disable at-rule-no-unknown */
-
-/* Tailwind Directives: 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-*/
-
-/* stylelint-enable at-rule-no-unknown */
 
 /* Smooth scrolling for entire application */
 html {

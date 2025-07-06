@@ -368,10 +368,10 @@ sehpaathi/
 2. Create feature branch: `git checkout -b feature/new-feature`
 3. Commit changes: `git commit -am 'Add new feature'`
 4. Push to branch: `git push origin feature/new-feature`
-5. Open a pull request on GitHub
+5. Submit pull request
 
 ## 📜 License
 
-This project is under active development and is not yet licensed for public use.
+This project is a product in development and is not yet licensed for public use.
 
 
