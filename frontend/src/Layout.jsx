@@ -12,11 +12,11 @@ import { Outlet, useLocation } from "react-router-dom";
 const Layout = () => {
   const dispatch = useDispatch();
   const location = useLocation();
-  
+
   // Global auth state listener to handle user changes
   useEffect(() => {
     let lastUserId = null;
-    
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         // If user changed, clear Redux state
@@ -38,19 +38,29 @@ const Layout = () => {
     return () => unsubscribe();
   }, [dispatch]);
 
-  const hideHeaderFooter =
+  // Logic for hiding the Header
+  const hideHeader =
     location.pathname === "/signin" ||
     location.pathname === "/signup" ||
     location.pathname === "/customize-profile" ||
-    location.pathname.startsWith("/dashboard");
-    
+    location.pathname.startsWith("/dashboard"); // Header is hidden for /dashboard and its sub-routes
+
+  // Logic for hiding the Footer
+  const hideFooter =
+    location.pathname === "/signin" ||
+    location.pathname === "/signup" ||
+    location.pathname === "/customize-profile" ||
+    location.pathname === "/demo" || // Add /demo here specifically for the footer
+    location.pathname.startsWith("/dashboard"); // Footer is also hidden for /dashboard and its sub-routes
+
+
   return (
     <div>
-      {!hideHeaderFooter && <Header />}
+      {!hideHeader && <Header />} {/* Use hideHeader for Header */}
       <ProfileGuard>
         <Outlet />
       </ProfileGuard>
-      {!hideHeaderFooter && <Footer />}
+      {!hideFooter && <Footer />} {/* Use hideFooter for Footer */}
       <ThemeToggle />
     </div>
   );

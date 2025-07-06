@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
+import DashboardHeader from "../../components/DashboardHeader/DashboardHeader";
+import DateHeader from "../../components/DateHeader/DateHeader";
 import { 
   Plus, 
   Search, 
@@ -214,24 +216,30 @@ const Resources = () => {
     const colorMap = isDark ? darkColors : lightColors;
     return colorMap[type] || (isDark ? "text-gray-400 bg-gray-700/30" : "text-gray-500 bg-gray-50");
   };  return (
-    <div className={`flex-1 flex flex-col h-full ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      {/* Mobile-Responsive Header */}
-      <div className={`${isDark ? 'bg-gray-800/70' : 'bg-white/70'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-3 sm:py-4`}>
-        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div>
-            <h1 className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>My Resources</h1>
-            <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'} mt-1 text-sm sm:text-base`}>Manage your study materials and links</p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2.5 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-xl w-full sm:w-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Resource</span>
-          </button>
-        </div>
-      </div>      {/* Mobile-Responsive Filters */}
-      <div className={`${isDark ? 'bg-gray-800/50' : 'bg-white/50'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-3 sm:py-4`}>
+    <div className={`flex-1 flex flex-col overflow-hidden relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>      {/* Enhanced Seamless Header - Responsive */}
+      <div className={`flex-shrink-0 relative px-4 sm:px-6 py-5 sm:py-6 ${isDark ? 'bg-gray-800/90' : 'bg-white/90'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'} z-10`}>
+        <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10' : 'bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5'}`}></div>
+        <div className="relative flex items-center justify-between">
+          <DashboardHeader userName="Student" selectedRole="resources" />
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className={`group flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold ${isDark 
+                ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
+                : 'text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              } rounded-xl transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-xl`}
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+              <span className="hidden sm:inline">Add Resource</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>        </div>
+      </div>
+<DateHeader />
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pb-20 lg:pb-6">
+        {/* Mobile-Responsive Filters */}
+        <div className={`${isDark ? 'bg-gray-800/50' : 'bg-white/50'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-3 sm:py-4`}>
         <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -437,11 +445,11 @@ const Resources = () => {
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {uploading ? 'Adding...' : 'Add Resource'}
-              </button>
-            </div>
+              </button>            </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

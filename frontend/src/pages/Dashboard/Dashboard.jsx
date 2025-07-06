@@ -107,7 +107,7 @@ const Dashboard = () => {
       
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden relative z-10">
-        <Outlet context={{ user, userProfile, userName }} />
+        <Outlet context={{ user, userProfile, userName, handleLogOut }} />
       </main>
       
       {/* Mobile Bottom Navigation - Visible only on mobile */}

@@ -10,30 +10,29 @@ import {
   Mail, 
   Phone, 
   MapPin, 
-  Edit2, 
   Save, 
   X, 
   Camera,
-  Shield,
   Bell,
-  Key,
-  Trash2,
-  Download,
   BookOpen,
   Trophy,
   Clock,
-  Target
+  Target,
+  Settings,
+  Sun,
+  Moon
 } from "lucide-react";
 import { useTheme } from "../../contexts/useTheme";
 import ProfileCompletionCard from "../../components/ProfileCompletionCard/ProfileCompletionCard";
 
 const Profile = () => {
   const { user, userProfile, userName } = useOutletContext();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState('profile');
   const [profileData, setProfileData] = useState({
     displayName: userProfile?.displayName || user?.displayName || userName || user?.email?.split('@')[0] || "User",
     email: user?.email || "",
@@ -91,68 +90,26 @@ const Profile = () => {
         displayName: displayName
       });
 
-      // Calculate if profile is now complete based on current data (same logic as userSlice)
-      const requiredFields = [
-        displayName,
-        profileData.gender || userProfile?.gender,
-        (profileData.role || userProfile?.role) && 
-        (profileData.role || userProfile?.role) !== "none" && 
-        (profileData.role || userProfile?.role) !== "",
-        profileData.location,
-        profileData.phone,
-        profileData.bio,
-        userProfile?.profilePictureUrl || userProfile?.avatarGradient
-      ];
-      
-      const completedFields = requiredFields.filter(field => field && field.toString().trim()).length;
-      const isNowComplete = completedFields === requiredFields.length;
-
-      // Update Firestore document
-      const userDocRef = doc(db, "users", auth.currentUser.uid);
-      const currentTime = new Date();
-      const updatedProfileData = {
-        uid: auth.currentUser.uid,
-        displayName: displayName,
-        email: auth.currentUser.email,
-        // Preserve existing fields that aren't editable in this form
-        gender: userProfile?.gender || "",
-        role: userProfile?.role || "",
-        // Update editable fields
-        phone: profileData.phone || "",
-        location: profileData.location || "",
-        bio: profileData.bio || "",
-        studyGoal: profileData.studyGoal || "",
-        preferredSubjects: profileData.preferredSubjects || [],
-        // Preserve profile picture data
-        profilePictureUrl: userProfile?.profilePictureUrl || "",
-        avatarGradient: userProfile?.avatarGradient || "",
-        // Update profile completion based on current data
-        isProfileComplete: isNowComplete,
-        profileSkipped: userProfile?.profileSkipped || false,
-        // Update timestamp
-        updatedAt: currentTime,
-        // Preserve creation timestamp if it exists
-        ...(userProfile?.createdAt && { createdAt: userProfile.createdAt })
-      };
-
-      await setDoc(userDocRef, updatedProfileData, { merge: true });
-
-      // Convert dates to timestamps for Redux (serializable)
+      // Create serializable profile data (remove functions, etc.)
       const serializableProfileData = {
-        ...updatedProfileData,
-        createdAt: updatedProfileData.createdAt ? 
-          (updatedProfileData.createdAt instanceof Date ? 
-            updatedProfileData.createdAt.getTime() : 
-            updatedProfileData.createdAt) : undefined,
-        updatedAt: updatedProfileData.updatedAt.getTime()
+        displayName: displayName,
+        phone: profileData.phone,
+        location: profileData.location,
+        bio: profileData.bio,
+        studyGoal: profileData.studyGoal,
+        preferredSubjects: profileData.preferredSubjects,
+        updatedAt: new Date().toISOString()
       };
 
-      // Update Redux store with serializable data only
+      // Update Firestore
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      await setDoc(userDocRef, serializableProfileData, { merge: true });
+
+      // Update Redux with only serializable data
       dispatch(setUserInfo({
         user: {
           uid: user?.uid,
           email: user?.email,
-          emailVerified: user?.emailVerified,
           displayName: displayName,
           photoURL: user?.photoURL,
           phoneNumber: user?.phoneNumber
@@ -166,7 +123,6 @@ const Profile = () => {
         displayName: displayName
       }));
 
-      setIsEditing(false);
       console.log("Profile saved successfully");
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -175,35 +131,56 @@ const Profile = () => {
       setIsSaving(false);
     }
   };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Reset to current user data, ensuring displayName fallback
-    setProfileData({
-      displayName: userProfile?.displayName || user?.displayName || userName || user?.email?.split('@')[0] || "User",
-      email: user?.email || "",
-      phone: userProfile?.phone || "",
-      location: userProfile?.location || "",
-      bio: userProfile?.bio || "",
-      joinDate: user?.metadata?.creationTime || new Date().toISOString(),
-      studyGoal: userProfile?.studyGoal || "",
-      preferredSubjects: userProfile?.preferredSubjects || []
-    });
-  };
-
   const handleCompleteProfile = () => {
     navigate('/customize-profile');
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-  };  return (
-    <div className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : 'bg-gray-50'} pb-16 lg:pb-0`}>
-      <div className="max-w-4xl mx-auto p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+  };
+
+  return (
+    <div className={`flex-1 flex flex-col overflow-hidden relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Enhanced Seamless Header - Fixed and Responsive */}
+      <div className={`flex-shrink-0 relative px-4 sm:px-6 py-5 sm:py-6 ${isDark ? 'bg-gray-800/90' : 'bg-white/90'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'} z-10`}>
+        <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10' : 'bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5'}`}></div>
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${isDark ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20' : 'bg-gradient-to-br from-purple-500/10 to-blue-500/10'} flex items-center justify-center backdrop-blur-xl border ${isDark ? 'border-purple-500/20' : 'border-purple-500/10'}`}>
+                <User className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+              </div>
+            </div>
+            <div>
+              <h1 className={`text-lg sm:text-xl font-bold ${isDark ? 'bg-gradient-to-r from-white via-blue-200 to-purple-200' : 'bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800'} bg-clip-text text-transparent`}>
+                My Profile
+              </h1>
+              <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'} font-medium`}>Manage your account and preferences</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className={`group flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold ${isDark 
+                ? 'text-gray-300 hover:text-blue-300 bg-gray-700/60 hover:bg-blue-900/50 border-gray-600/50 hover:border-blue-500/50' 
+                : 'text-gray-700 hover:text-blue-700 bg-white/60 hover:bg-blue-50 border-gray-200/50 hover:border-blue-200'
+              } border rounded-xl transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-xl`}
+            >
+              <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform duration-200" />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pb-20 lg:pb-6">
+        <div className="max-w-4xl mx-auto p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         
         {/* Profile Completion Card */}
         <ProfileCompletionCard 
@@ -214,29 +191,15 @@ const Profile = () => {
         {/* Header */}
         <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
-            {/* Profile Picture */}
-            <div className="relative group">
-              <div className={`w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl lg:text-3xl font-bold shadow-lg overflow-hidden ${
-                userProfile?.profilePictureUrl ? "bg-gray-200" :
-                userProfile?.avatarGradient ? `bg-gradient-to-br ${userProfile.avatarGradient}` :
-                "bg-gradient-to-br from-blue-500 to-purple-600"
-              }`}>
-                {userProfile?.profilePictureUrl || user?.photoURL ? (
-                  <img 
-                    src={userProfile?.profilePictureUrl || user?.photoURL}
-                    alt="Profile" 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (                  profileData.displayName.charAt(0).toUpperCase()
-                )}
+            <div className="relative">
+              <div className={`w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 ${isDark ? 'bg-gradient-to-br from-blue-500 to-purple-600' : 'bg-gradient-to-br from-blue-600 to-purple-700'} rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl lg:text-4xl font-bold shadow-xl`}>
+                {profileData.displayName?.charAt(0)?.toUpperCase() || 'U'}
               </div>
-              <button className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-200 backdrop-blur-xl">
+              <button className={`absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg ${isDark ? 'border-2 border-gray-800' : 'border-2 border-white'}`}>
                 <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
-
-            {/* User Info */}
-            <div className="flex-1 min-w-0 text-center sm:text-left">
+            <div className="flex-1 text-center sm:text-left">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div>
                   <h1 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -246,25 +209,20 @@ const Profile = () => {
                     Member since {formatDate(profileData.joinDate)}
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 text-sm shadow-lg hover:shadow-xl backdrop-blur-xl"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit Profile
-                </button>
               </div>
             </div>
           </div>
-        </div>        {/* Stats Cards */}
+        </div>
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg border`}>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${isDark ? 'bg-blue-900/50' : 'bg-blue-100'} rounded-lg flex items-center justify-center`}>
+              <div className={`p-2 sm:p-3 rounded-lg ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
                 <Clock className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
               <div>
-                <p className={`text-lg sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.studyHours}</p>
+                <p className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.studyHours}</p>
                 <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Study Hours</p>
               </div>
             </div>
@@ -272,10 +230,11 @@ const Profile = () => {
 
           <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg border`}>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${isDark ? 'bg-green-900/50' : 'bg-green-100'} rounded-lg flex items-center justify-center`}>
-                <BookOpen className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />              </div>
+              <div className={`p-2 sm:p-3 rounded-lg ${isDark ? 'bg-green-500/20' : 'bg-green-100'}`}>
+                <BookOpen className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+              </div>
               <div>
-                <p className={`text-lg sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.completedCourses}</p>
+                <p className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.completedCourses}</p>
                 <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Completed</p>
               </div>
             </div>
@@ -283,11 +242,11 @@ const Profile = () => {
 
           <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg border`}>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${isDark ? 'bg-orange-900/50' : 'bg-orange-100'} rounded-lg flex items-center justify-center`}>
-                <Trophy className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
+              <div className={`p-2 sm:p-3 rounded-lg ${isDark ? 'bg-orange-500/20' : 'bg-orange-100'}`}>
+                <Target className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
               </div>
               <div>
-                <p className={`text-lg sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.currentStreak}</p>
+                <p className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.currentStreak}</p>
                 <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Day Streak</p>
               </div>
             </div>
@@ -295,49 +254,21 @@ const Profile = () => {
 
           <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg border`}>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${isDark ? 'bg-purple-900/50' : 'bg-purple-100'} rounded-lg flex items-center justify-center`}>
-                <Target className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+              <div className={`p-2 sm:p-3 rounded-lg ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
+                <Trophy className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
               </div>
               <div>
-                <p className={`text-lg sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.totalResources}</p>
+                <p className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.totalResources}</p>
                 <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Resources</p>
               </div>
             </div>
           </div>
-        </div>        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Personal Information */}
           <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className={`text-lg sm:text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Personal Information</h2>
-              {isEditing && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-xs sm:text-sm rounded-lg transition-colors"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3 h-3 sm:w-4 sm:h-4" />
-                        Save
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-xs sm:text-sm rounded-lg transition-colors"
-                  >
-                    <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
+            <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Personal Information</h2>
 
             <div className="space-y-3 sm:space-y-4">
               <div>
@@ -345,20 +276,7 @@ const Profile = () => {
                   <User className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                   Full Name
                 </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={profileData.displayName}
-                    onChange={(e) => handleInputChange('displayName', e.target.value)}
-                    className={`w-full px-3 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                      isDark 
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  />
-                ) : (
-                  <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.displayName}</p>
-                )}
+                <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.displayName}</p>
               </div>
 
               <div>
@@ -374,199 +292,336 @@ const Profile = () => {
                   <Phone className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                   Phone
                 </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Enter phone number"
-                    className={`w-full px-3 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                      isDark 
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  />
-                ) : (
-                  <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.phone || "Not provided"}</p>
-                )}
+                <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.phone || "Not provided"}</p>
               </div>
 
               <div>
                 <label className={`block text-xs sm:text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   <MapPin className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                   Location
-                </label>                {isEditing ? (
-                  <input
-                    type="text"
-                    value={profileData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Enter your location"
-                    className={`w-full px-3 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                      isDark 
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  />
-                ) : (
-                  <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.location || "Not provided"}</p>
-                )}
+                </label>
+                <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.location || "Not provided"}</p>
               </div>
 
               <div>
                 <label className={`block text-xs sm:text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   Bio
                 </label>
-                {isEditing ? (
-                  <textarea
-                    value={profileData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell us about yourself..."
-                    rows={3}
-                    className={`w-full px-3 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors ${
-                      isDark 
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  />
-                ) : (
-                  <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.bio || "No bio provided"}</p>
-                )}
+                <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.bio || "No bio provided"}</p>
               </div>
             </div>
           </div>
 
-          {/* Preferences & Settings */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Study Preferences */}
-            <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
-              <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Study Preferences</h2>
+          {/* Study Preferences */}
+          <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
+            <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Study Preferences</h2>
+            
+            <div className="space-y-3 sm:space-y-4">
+              <div>
+                <label className={`block text-xs sm:text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Study Goal
+                </label>
+                <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.studyGoal || "Not set"}</p>
+              </div>            </div>
+          </div>
+        </div>
+        </div>
+      </div>      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75 backdrop-blur-sm"
+            onClick={() => setIsSettingsOpen(false)}
+          ></div>
+
+          {/* Mobile-first responsive modal */}
+          <div className="fixed inset-0 flex items-end sm:items-center justify-center">
+            <div className={`w-full h-full sm:h-auto sm:max-w-2xl sm:max-h-[90vh] sm:mx-4 sm:rounded-2xl overflow-hidden transition-all transform shadow-xl ${
+              isDark ? 'bg-gray-800 sm:border-gray-700' : 'bg-white sm:border-gray-200'
+            } sm:border flex flex-col`}>
               
-              <div className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className={`block text-xs sm:text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Study Goal
-                  </label>
-                  {isEditing ? (
-                    <select
-                      value={profileData.studyGoal}
-                      onChange={(e) => handleInputChange('studyGoal', e.target.value)}
-                      className={`w-full px-3 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                        isDark 
-                          ? 'bg-gray-700/50 border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
+              {/* Enhanced Mobile Header */}
+              <div className={`flex-shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b ${
+                isDark ? 'border-gray-700/50 bg-gray-800/90' : 'border-gray-200/50 bg-white/90'
+              } backdrop-blur-xl`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${
+                      isDark ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20' : 'bg-gradient-to-br from-blue-500/10 to-purple-500/10'
+                    } flex items-center justify-center backdrop-blur-xl border ${
+                      isDark ? 'border-blue-500/20' : 'border-blue-500/10'
+                    }`}>
+                      <Settings className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                    </div>
+                    <div>
+                      <h2 className={`text-lg sm:text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Settings
+                      </h2>
+                      <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Manage your preferences
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsSettingsOpen(false)}
+                    className={`p-2 sm:p-2.5 rounded-xl transition-colors ${
+                      isDark 
+                        ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300 bg-gray-700/50' 
+                        : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600 bg-gray-50'
+                    }`}
+                  >
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile-optimized Settings tabs */}
+              <div className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-b ${
+                isDark ? 'border-gray-700/50' : 'border-gray-200/50'
+              }`}>
+                <div className="flex space-x-1">
+                  {[
+                    { id: 'profile', label: 'Profile', icon: User },
+                    { id: 'notifications', label: 'Notifications', icon: Bell },
+                    { id: 'appearance', label: 'Appearance', icon: isDark ? Moon : Sun }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveSettingsTab(tab.id)}
+                      className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-2 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                        activeSettingsTab === tab.id
+                          ? (isDark 
+                              ? 'bg-blue-600 text-white shadow-lg' 
+                              : 'bg-blue-600 text-white shadow-lg')
+                          : (isDark 
+                              ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50' 
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50')
                       }`}
                     >
-                      <option value="">Select a goal</option>
-                      <option value="exam-prep">Exam Preparation</option>
-                      <option value="skill-building">Skill Building</option>
-                      <option value="career-change">Career Change</option>
-                      <option value="personal-growth">Personal Growth</option>
-                    </select>
-                  ) : (
-                    <p className={`text-sm sm:text-base ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{profileData.studyGoal || "Not set"}</p>
+                      <tab.icon className="w-4 h-4 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden text-xs">{tab.label.slice(0, 4)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>              {/* Scrollable Settings content */}
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+                <div className="space-y-6">
+                  {/* Profile Settings */}
+                  {activeSettingsTab === 'profile' && (
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center space-x-3 mb-4 sm:mb-6">
+                        <div className={`w-8 h-8 rounded-lg ${
+                          isDark ? 'bg-blue-500/20' : 'bg-blue-100'
+                        } flex items-center justify-center`}>
+                          <User className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                        </div>
+                        <div>
+                          <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            Profile Settings
+                          </h3>
+                          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Update your personal information
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">                        <div>
+                          <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Display Name
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.displayName}
+                            onChange={(e) => handleInputChange('displayName', e.target.value)}
+                            className={`w-full px-4 py-3 sm:py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                              isDark 
+                                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            }`}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={profileData.phone}
+                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                            className={`w-full px-4 py-3 sm:py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                              isDark 
+                                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            }`}
+                          />
+                        </div>
+                        
+                        <div className="sm:col-span-2">
+                          <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={profileData.location}
+                            onChange={(e) => handleInputChange('location', e.target.value)}
+                            className={`w-full px-4 py-3 sm:py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                              isDark 
+                                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            }`}
+                          />
+                        </div>
+                        
+                        <div className="sm:col-span-2">
+                          <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Bio
+                          </label>
+                          <textarea
+                            value={profileData.bio}
+                            onChange={(e) => handleInputChange('bio', e.target.value)}
+                            rows={4}
+                            className={`w-full px-4 py-3 sm:py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all ${
+                              isDark 
+                                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notifications Settings */}
+                  {activeSettingsTab === 'notifications' && (
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center space-x-3 mb-4 sm:mb-6">
+                        <div className={`w-8 h-8 rounded-lg ${
+                          isDark ? 'bg-orange-500/20' : 'bg-orange-100'
+                        } flex items-center justify-center`}>
+                          <Bell className={`w-4 h-4 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
+                        </div>
+                        <div>
+                          <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            Notification Preferences
+                          </h3>
+                          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Choose how you want to be notified
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4 sm:space-y-6">
+                        {Object.entries(notifications).map(([key, value]) => (
+                          <div key={key} className={`flex items-start justify-between p-4 rounded-xl border ${
+                            isDark ? 'border-gray-700/50 bg-gray-700/20' : 'border-gray-200/50 bg-gray-50/50'
+                          }`}>
+                            <div className="flex-1 pr-4">
+                              <h4 className={`font-semibold text-sm sm:text-base ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                              </h4>
+                              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                                {key === 'emailNotifications' && 'Receive notifications via email'}
+                                {key === 'pushNotifications' && 'Receive push notifications'}
+                                {key === 'weeklyDigest' && 'Get weekly summary of your activity'}
+                                {key === 'studyReminders' && 'Reminders to maintain study streaks'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleNotificationChange(key)}
+                              className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                value ? 'bg-blue-600' : (isDark ? 'bg-gray-600' : 'bg-gray-200')
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  value ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Appearance Settings */}
+                  {activeSettingsTab === 'appearance' && (
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center space-x-3 mb-4 sm:mb-6">
+                        <div className={`w-8 h-8 rounded-lg ${
+                          isDark ? 'bg-purple-500/20' : 'bg-purple-100'
+                        } flex items-center justify-center`}>
+                          {isDark ? (
+                            <Moon className="w-4 h-4 text-purple-400" />
+                          ) : (
+                            <Sun className="w-4 h-4 text-purple-600" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            Appearance Settings
+                          </h3>
+                          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Customize how the app looks
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className={`p-4 sm:p-6 rounded-xl border ${
+                        isDark ? 'border-gray-700/50 bg-gray-700/20' : 'border-gray-200/50 bg-gray-50/50'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 pr-4">
+                            <h4 className={`font-semibold text-sm sm:text-base ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              Theme Mode
+                            </h4>
+                            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                              Choose between light and dark mode
+                            </p>
+                          </div>
+                          <button
+                            onClick={toggleTheme}
+                            className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl ${
+                              isDark 
+                                ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white' 
+                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {isDark ? (
+                              <>
+                                <Sun className="w-4 h-4" />
+                                <span className="hidden sm:inline">Light Mode</span>
+                              </>
+                            ) : (
+                              <>
+                                <Moon className="w-4 h-4" />
+                                <span className="hidden sm:inline">Dark Mode</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
-            </div>            {/* Notification Settings */}
-            <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
-              <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
-                Notifications
-              </h2>
-              
-              <div className="space-y-3 sm:space-y-4">
-                {Object.entries(notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className={`text-xs sm:text-sm font-medium capitalize ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={value}
-                        onChange={() => handleNotificationChange(key)}
-                        className="sr-only peer"
-                      />
-                      <div className={`w-9 h-5 sm:w-11 sm:h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600 ${
-                        isDark ? 'bg-gray-600 after:border-gray-500' : 'bg-gray-200 after:border-gray-300'
-                      }`}></div>
-                    </label>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
-
-        {/* Security & Data */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Security Settings */}
-          <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
-            <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
-              Security
-            </h2>
-            
-            <div className="space-y-3 sm:space-y-4">
-              <button className={`w-full flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                isDark 
-                  ? 'border-gray-600/50 hover:bg-gray-700/30'
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <Key className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
-                  <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Change Password</span>
-                </div>
-                <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>›</span>
-              </button>
-              
-              <button className={`w-full flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                isDark 
-                  ? 'border-gray-600/50 hover:bg-gray-700/30'
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} />
-                  <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Two-Factor Authentication</span>
-                </div>
-                <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>›</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Data Management */}
-          <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
-            <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Data Management
-            </h2>            
-            <div className="space-y-3 sm:space-y-4">
-              <button className={`w-full flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                isDark 
-                  ? 'border-gray-600/50 hover:bg-gray-700/30'
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <Download className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                  <span className={`text-xs sm:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Export Data</span>
-                </div>
-                <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>›</span>
-              </button>
-              
-              <button className={`w-full flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                isDark 
-                  ? 'border-red-500/30 hover:bg-red-500/10 text-red-400'
-                  : 'border-red-200 hover:bg-red-50 text-red-600'
-              }`}>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-xs sm:text-sm font-medium">Delete Account</span>
-                </div>
-                <span className={isDark ? 'text-red-500' : 'text-red-400'}>›</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

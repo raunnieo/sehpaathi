@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  BookOpen, 
+  BookOpen,
   Search, 
   Download,
   Eye,
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { branches, semesters, materialTypes } from "../../constants";
 import { useTheme } from "../../contexts/useTheme";
+import DashboardHeader from "../../components/DashboardHeader/DashboardHeader";
+import DateHeader from "../../components/DateHeader/DateHeader";
 
 const Materials = () => {
   const { isDark } = useTheme();
@@ -125,21 +127,28 @@ const Materials = () => {
     const colorMap = isDark ? darkColors : lightColors;
     return colorMap[branch] || (isDark ? "bg-gray-700/30 text-gray-400 border-gray-700/50" : "bg-gray-50 text-gray-600 border-gray-200");
   };  return (
-    <div className={`flex-1 flex flex-col h-full ${isDark ? 'bg-gray-900' : 'bg-gray-50'} pb-16 lg:pb-0`}>
-      {/* Header */}
-      <div className={`${isDark ? 'bg-gray-800/70' : 'bg-white/70'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-4`}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="mb-2 sm:mb-0">
-            <h1 className={`text-xl sm:text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Study Materials</h1>
-            <p className={`text-sm sm:text-base ${isDark ? 'text-gray-300' : 'text-gray-600'} mt-1`}>Access course materials, notes, and resources</p>
-          </div>
-          <div className={`flex items-center space-x-2 text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            <FileText className="w-4 h-4" />
-            <span>{filteredMaterials.length} materials available</span>
+    <div className={`flex-1 flex flex-col overflow-hidden relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>      {/* Enhanced Seamless Header - Responsive */}
+      <div className={`flex-shrink-0 relative px-4 sm:px-6 py-5 sm:py-6 ${isDark ? 'bg-gray-800/90' : 'bg-white/90'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'} z-10`}>
+        <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10' : 'bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5'}`}></div>
+        <div className="relative flex items-center justify-between">
+          <DashboardHeader userName="Student" selectedRole="materials" />
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className={`flex items-center space-x-2 text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} px-3 py-2 rounded-lg ${isDark ? 'bg-gray-700/30' : 'bg-gray-100/30'} backdrop-blur-xl`}>
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">{filteredMaterials.length} materials</span>
+              <span className="sm:hidden">{filteredMaterials.length}</span>
+            </div>
           </div>
         </div>
-      </div>      {/* Filters */}
-      <div className={`${isDark ? 'bg-gray-800/50' : 'bg-white/50'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-4`}>
+      </div>
+
+      {/* Date Header - Sticky */}
+      <DateHeader />
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pb-20 lg:pb-6">
+        {/* Filters */}
+        <div className={`${isDark ? 'bg-gray-800/50' : 'bg-white/50'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-4`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Search */}
           <div className="sm:col-span-2 lg:col-span-2 relative">
@@ -295,10 +304,10 @@ const Materials = () => {
           <span>
             Showing {filteredMaterials.length} of {mockMaterials.length} materials
           </span>
-          <span>
-            Last updated: {new Date().toLocaleDateString()}
+          <span>            Last updated: {new Date().toLocaleDateString()}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );

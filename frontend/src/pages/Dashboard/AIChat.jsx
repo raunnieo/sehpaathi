@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Bot, User, Copy, Check, Plus, MessageSquare, Clock, ChevronRight, Trash2 } from "lucide-react";
+import { Send, Copy, Check, Plus, MessageSquare, Clock, ChevronRight, Trash2, Menu, X } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from "../../contexts/useTheme";
+import DashboardHeader from "../../components/DashboardHeader/DashboardHeader";
+import DateHeader from "../../components/DateHeader/DateHeader";
+import { useOutletContext } from "react-router-dom";
 
 const AIChat = () => {
-  const { isDark } = useTheme();  const [messages, setMessages] = useState([
+  const { isDark } = useTheme();
+  const { user, userProfile } = useOutletContext();
+  
+  const [messages, setMessages] = useState([
     {
       id: 1,
       text: "Hello! I'm Sehpaathi, your AI study assistant. How can I help you with your learning today? 🚀\n\nI can help you with:\n- Explaining complex concepts\n- Solving math problems\n- Writing and reviewing essays\n- Study planning and tips\n- Research assistance\n- And much more!",
@@ -17,7 +23,10 @@ const AIChat = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [copiedMap, setCopiedMap] = useState({});
-  const [showSidebar, setShowSidebar] = useState(true);  const [chatHistory, setChatHistory] = useState([
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  const [chatHistory, setChatHistory] = useState([
     { 
       id: 1, 
       title: "Welcome Chat", 
@@ -103,7 +112,7 @@ const AIChat = () => {
         setMessages(prev => [...prev, aiMessage]);
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error("Error sending message:", error);
       const errorMessage = {
         id: Date.now() + 1,
         text: "Sorry, I'm having trouble connecting right now. Please try again later.",
@@ -117,7 +126,7 @@ const AIChat = () => {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -130,125 +139,69 @@ const AIChat = () => {
       setTimeout(() => {
         setCopiedMap(prev => ({ ...prev, [id]: false }));
       }, 2000);
-    } catch (error) {
-      console.error('Failed to copy text:', error);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
     }
   };
+
   const newChat = () => {
     const newChatId = Date.now();
-    const newChatData = {
+    const newChatItem = {
       id: newChatId,
       title: "New Chat",
-      lastMessage: "Hello! I'm Sehpaathi...",
+      lastMessage: "",
       timestamp: new Date(),
       isActive: true
     };
-    
-    // Mark current chat as inactive
-    setChatHistory(prev => prev.map(chat => ({ ...chat, isActive: false })));
-    
-    // Add new chat and set as active
-    setChatHistory(prev => [newChatData, ...prev]);
-    setActiveChat(newChatId);
-      // Reset messages
-    setMessages([
-      {
-        id: 1,
-        text: "Hello! I'm Sehpaathi, your AI study assistant. How can I help you with your learning today? 🚀\n\nI can help you with:\n- Explaining complex concepts\n- Solving math problems\n- Writing and reviewing essays\n- Study planning and tips\n- Research assistance\n- And much more!",
-        sender: "ai",
-        timestamp: new Date()
-      }
-    ]);
-  };
 
-  const switchChat = (chatId) => {
-    setActiveChat(chatId);
-    setChatHistory(prev => prev.map(chat => ({ 
-      ...chat, 
-      isActive: chat.id === chatId 
-    })));
-      // In a real app, you would load the messages for this chat
-    // For now, we'll just show the welcome message
-    setMessages([
-      {
-        id: 1,
-        text: "Hello! I'm Sehpaathi, your AI study assistant. How can I help you with your learning today? 🚀\n\nI can help you with:\n- Explaining complex concepts\n- Solving math problems\n- Writing and reviewing essays\n- Study planning and tips\n- Research assistance\n- And much more!",
-        sender: "ai",
-        timestamp: new Date()
-      }
-    ]);
+    setChatHistory(prev => [newChatItem, ...prev.map(chat => ({ ...chat, isActive: false }))]);
+    setActiveChat(newChatId);
+    setMessages([{
+      id: 1,
+      text: "Hello! I'm Sehpaathi, your AI study assistant. How can I help you with your learning today? 🚀",
+      sender: "ai",
+      timestamp: new Date()
+    }]);
+    setShowMobileSidebar(false);
   };
 
   const deleteChat = (chatId, e) => {
     e.stopPropagation();
     setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-    
-    // If we deleted the active chat, switch to the first available chat
-    if (chatId === activeChat) {
+    if (activeChat === chatId && chatHistory.length > 1) {
       const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
       if (remainingChats.length > 0) {
-        switchChat(remainingChats[0].id);
-      } else {
-        newChat();
+        setActiveChat(remainingChats[0].id);
       }
     }
   };
 
-  const formatRelativeTime = (date) => {
-    const now = new Date();
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays === 1) return "Yesterday";
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return date.toLocaleDateString();
-  };  const markdownComponents = {
+  const switchChat = (chatId) => {
+    setChatHistory(prev => prev.map(chat => ({ ...chat, isActive: chat.id === chatId })));
+    setActiveChat(chatId);
+    setShowMobileSidebar(false);
+  };
+
+  const markdownComponents = {
     code({ inline, className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || '');
-      const codeId = `code-${Date.now()}-${Math.random()}`;
-      
       return !inline && match ? (
-        <div className="relative group my-4">
-          <div className="flex items-center justify-between bg-gradient-to-r from-gray-800 via-gray-900 to-black px-5 py-3 rounded-t-2xl border border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div className="flex space-x-1.5">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              </div>
-              <span className="text-sm text-gray-300 font-medium capitalize">{match[1]}</span>
-            </div>
-            <button
-              onClick={() => handleCopy(String(children).replace(/\n$/, ''), codeId)}
-              className="flex items-center space-x-2 text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-600/50 px-3 py-1.5 rounded-lg transition-all duration-200 text-sm font-medium"
-            >
-              {copiedMap[codeId] ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedMap[codeId] ? 'Copied!' : 'Copy'}</span>
-            </button>
-          </div>
-          <SyntaxHighlighter
-            style={atomDark}
-            language={match[1]}
-            PreTag="div"
-            className="!mt-0 !rounded-t-none !rounded-b-2xl border-x border-b border-gray-700"
-            customStyle={{
-              margin: 0,
-              borderRadius: '0 0 1rem 1rem',
-              background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
-            }}
-            {...props}
-          >
-            {String(children).replace(/\n$/, '')}
-          </SyntaxHighlighter>
-        </div>
+        <SyntaxHighlighter
+          style={atomDark}
+          language={match[1]}
+          PreTag="div"
+          className="rounded-xl my-4 shadow-lg"
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
       ) : (
-        <code className="bg-blue-100/80 text-blue-800 px-2 py-1 rounded-lg text-sm font-medium border border-blue-200/50" {...props}>
+        <code className={`${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'} px-2 py-1 rounded-md font-mono text-sm`} {...props}>
           {children}
         </code>
       );
-    },    blockquote({ children }) {
+    },
+    blockquote({ children }) {
       return (
         <blockquote className={`border-l-4 ${isDark ? 'border-blue-400' : 'border-blue-500'} ${isDark ? 'bg-blue-900/20' : 'bg-blue-50/50'} pl-6 py-4 my-4 rounded-r-xl`}>
           <div className={`${isDark ? 'text-blue-300' : 'text-blue-900'} font-medium`}>{children}</div>
@@ -288,27 +241,28 @@ const AIChat = () => {
         </a>
       );
     }
-  };  return (
+  };
+
+  return (
     <div className={`flex h-full ${isDark ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-gray-50 via-white to-blue-50/30'}`}>
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">        
         {/* Enhanced Seamless Header - Responsive */}
-        <div className={`flex-shrink-0 relative px-3 sm:px-6 py-3 sm:py-4 ${isDark ? 'bg-gray-800/90' : 'bg-white/90'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'} z-10`}>
+        <div className={`flex-shrink-0 relative px-4 sm:px-6 py-5 sm:py-6 ${isDark ? 'bg-gray-800/90' : 'bg-white/90'} backdrop-blur-xl border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'} z-10`}>
           <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10' : 'bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5'}`}></div>
           <div className="relative flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
-              </div>
-              <div>
-                <h1 className={`text-lg sm:text-xl font-bold ${isDark ? 'bg-gradient-to-r from-white via-blue-200 to-purple-200' : 'bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800'} bg-clip-text text-transparent`}>
-                  Sehpaathi AI
-                </h1>
-                <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'} font-medium`}>Your intelligent study companion</p>
-              </div>
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setShowMobileSidebar(true)}
+                className={`lg:hidden p-2 ${isDark 
+                  ? 'text-gray-400 hover:text-gray-300 bg-gray-700/60 hover:bg-gray-600/50 border-gray-600/50 hover:border-gray-500' 
+                  : 'text-gray-500 hover:text-gray-700 bg-white/60 hover:bg-gray-50 border-gray-200/50 hover:border-gray-300'
+                } border rounded-xl transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-xl`}
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <DashboardHeader userName={user?.displayName || "Student"} selectedRole="sehpaathi" />
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button
@@ -333,73 +287,103 @@ const AIChat = () => {
               </button>
             </div>
           </div>
-        </div>        {/* Enhanced Messages Area - Mobile Optimized */}
+        </div>
+
+        {/* Date Header - Sticky */}
+        <DateHeader />
+
+        {/* Enhanced Messages Area - Mobile Optimized */}
         <div className={`flex-1 overflow-y-auto p-2 sm:p-6 ${isDark ? 'bg-gradient-to-b from-transparent via-gray-800/20 to-gray-900/10' : 'bg-gradient-to-b from-transparent via-blue-50/20 to-purple-50/10'} min-h-0 pb-32 lg:pb-4`}>
           <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex items-start space-x-2 sm:space-x-4 group ${
+                className={`flex items-start space-x-3 sm:space-x-4 group ${
                   message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                 }`}
               >
-                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${
+                {/* Avatar */}
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg border-2 ${
                   message.sender === 'user' 
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700' 
-                    : 'bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-600'
+                    ? `${isDark ? 'border-blue-400/30' : 'border-blue-300/50'} bg-gradient-to-r from-blue-500 to-purple-600` 
+                    : `${isDark ? 'border-gray-600/30' : 'border-gray-300/50'} bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600`
                 }`}>
                   {message.sender === 'user' ? (
-                    <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    <img
+                      src={user?.photoURL || userProfile?.profilePhoto || "/assets/logo.png"}
+                      alt="User Avatar"
+                      className="w-full h-full rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "/assets/logo.png";
+                      }}
+                    />
                   ) : (
-                    <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    <img
+                      src="/assets/notwhite.png"
+                      alt="Sehpaathi AI"
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   )}
                 </div>
-                  <div className={`flex-1 max-w-[85%] sm:max-w-3xl ${
-                  message.sender === 'user' ? 'text-right' : ''
-                }`}>                  <div className={`inline-block p-3 sm:p-5 transition-all duration-200 group-hover:shadow-md ${
-                    message.sender === 'user'
-                      ? 'relative bg-white/10 backdrop-blur-sm text-white rounded-2xl rounded-br-lg'
-                      : `${isDark ? 'bg-gray-800/60 text-gray-100 border-gray-700/50' : 'bg-white text-gray-900 border-gray-100/80'} border backdrop-blur-sm rounded-3xl rounded-bl-lg shadow-sm`
+                
+                {/* Message Content */}
+                <div className={`flex-1 min-w-0 ${message.sender === 'user' ? 'flex flex-col items-end' : ''}`}>
+                  <div className={`max-w-[85%] sm:max-w-2xl ${
+                    message.sender === 'user' ? 'ml-auto' : 'mr-auto'
                   }`}>
-                    {message.sender === 'user' ? (
-                      <p className="whitespace-pre-wrap font-medium text-sm sm:text-base">{message.text}</p>
-                    ) : (
-                      <div className={`prose prose-sm max-w-none ${isDark 
-                        ? 'prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:bg-gray-700 prose-code:text-gray-200' 
-                        : 'prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:text-gray-800'
-                      } prose-code:px-2 prose-code:py-1 prose-code:rounded-md`}>
-                        <ReactMarkdown components={markdownComponents}>
-                          {message.text}
-                        </ReactMarkdown>
+                    <div className={`inline-block p-3 sm:p-4 transition-all duration-200 group-hover:shadow-lg ${
+                      message.sender === 'user'
+                        ? `${isDark ? 'bg-blue-600/90 border-blue-500/30' : 'bg-blue-600 border-blue-500/20'} text-white rounded-2xl rounded-tr-lg border shadow-lg`
+                        : `${isDark ? 'bg-gray-800/80 text-gray-100 border-gray-700/50' : 'bg-white text-gray-900 border-gray-200/80'} border backdrop-blur-sm rounded-2xl rounded-tl-lg shadow-sm`
+                    }`}>
+                      {message.sender === 'user' ? (
+                        <p className="whitespace-pre-wrap font-medium text-sm sm:text-base leading-relaxed">{message.text}</p>
+                      ) : (
+                        <div className={`prose prose-sm max-w-none ${isDark 
+                          ? 'prose-headings:text-white prose-p:text-gray-200 prose-strong:text-white prose-code:bg-gray-700 prose-code:text-gray-200' 
+                          : 'prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:text-gray-800'
+                        } prose-code:px-2 prose-code:py-1 prose-code:rounded-md`}>
+                          <ReactMarkdown components={markdownComponents}>
+                            {message.text}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Message Actions - Only for AI messages */}
+                    {message.sender === 'ai' && (
+                      <div className="flex items-center space-x-2 sm:space-x-3 mt-2 sm:mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          onClick={() => handleCopy(message.text, `msg-${message.id}`)}
+                          className={`flex items-center space-x-1 ${isDark 
+                            ? 'text-gray-400 hover:text-gray-300 bg-gray-700/80 hover:bg-gray-600/80 border-gray-600/50 hover:border-gray-500' 
+                            : 'text-gray-400 hover:text-gray-600 bg-white/80 hover:bg-white border-gray-200/50 hover:border-gray-300'
+                          } border px-2 py-1 rounded-lg transition-all duration-200 text-xs font-medium backdrop-blur-xl`}
+                        >
+                          {copiedMap[`msg-${message.id}`] ? <Check size={10} /> : <Copy size={10} />}
+                          <span className="hidden sm:inline">{copiedMap[`msg-${message.id}`] ? 'Copied!' : 'Copy'}</span>
+                        </button>
+                        <span className={`text-xs ${isDark ? 'text-gray-400 bg-gray-700/60 border-gray-600/50' : 'text-gray-400 bg-white/60 border-gray-200/50'} px-2 py-1 rounded-lg border backdrop-blur-xl`}>
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                     )}
                   </div>
-                    {message.sender === 'ai' && (
-                    <div className="flex items-center space-x-2 sm:space-x-3 mt-2 sm:mt-3 ml-2 sm:ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        onClick={() => handleCopy(message.text, `msg-${message.id}`)}
-                        className={`flex items-center space-x-1 ${isDark 
-                          ? 'text-gray-400 hover:text-gray-300 bg-gray-700/80 hover:bg-gray-600/80 border-gray-600/50 hover:border-gray-500' 
-                          : 'text-gray-400 hover:text-gray-600 bg-white/80 hover:bg-white border-gray-200/50 hover:border-gray-300'
-                        } border px-2 py-1 rounded-lg transition-all duration-200 text-xs font-medium backdrop-blur-xl`}
-                      >
-                        {copiedMap[`msg-${message.id}`] ? <Check size={10} /> : <Copy size={10} />}
-                        <span className="hidden sm:inline">{copiedMap[`msg-${message.id}`] ? 'Copied!' : 'Copy'}</span>
-                      </button>
-                      <span className={`text-xs ${isDark ? 'text-gray-400 bg-gray-700/60 border-gray-600/50' : 'text-gray-400 bg-white/60 border-gray-200/50'} px-2 py-1 rounded-lg border backdrop-blur-xl`}>
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
-              {isTyping && (
-              <div className="flex items-start space-x-2 sm:space-x-4 group">
-                <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md">
-                  <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+
+            {/* Typing indicator */}
+            {isTyping && (
+              <div className="flex items-start space-x-3 sm:space-x-4 group">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg border-2 border-gray-600/30">
+                  <img
+                    src="/assets/notwhite.png"
+                    alt="Sehpaathi AI"
+                    className="w-full h-full rounded-full object-cover"
+                  />
                 </div>
-                <div className={`${isDark ? 'bg-gray-800/60 border-gray-700/50' : 'bg-white border-gray-100/80'} border p-3 sm:p-5 rounded-3xl rounded-bl-lg shadow-sm backdrop-blur-sm`}>
+                <div className={`${isDark ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white border-gray-200/80'} border p-3 sm:p-4 rounded-2xl rounded-tl-lg shadow-sm backdrop-blur-sm`}>
                   <div className="flex space-x-1.5">
                     {[0, 1, 2].map((i) => (
                       <div
@@ -414,7 +398,9 @@ const AIChat = () => {
             )}
             <div ref={messagesEndRef} />
           </div>
-        </div>        {/* Mobile-Optimized Input Area */}
+        </div>
+
+        {/* Mobile-Optimized Input Area */}
         <div className={`flex-shrink-0 border-t ${isDark ? 'border-gray-700/50 bg-gray-800/95' : 'border-gray-100/50 bg-white/95'} backdrop-blur-xl p-2 sm:p-4 pb-20 lg:pb-4`}>
           <div className="max-w-4xl mx-auto">
             <div className="relative group">
@@ -439,137 +425,175 @@ const AIChat = () => {
                   <button
                     onClick={handleSendMessage}
                     disabled={!input.trim() || isTyping}
-                    className={`relative p-2.5 sm:p-3 rounded-2xl transition-all duration-300 ${
+                    className={`p-2 sm:p-2.5 rounded-xl transition-all duration-200 ${
                       input.trim() && !isTyping
-                        ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95'
-                        : `${isDark ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-400'} cursor-not-allowed`
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                        : `${isDark ? 'bg-gray-600/50 text-gray-500' : 'bg-gray-200/50 text-gray-400'} cursor-not-allowed`
                     }`}
                   >
-                    {isTyping ? (
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                    )}
-                    {input.trim() && !isTyping && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-indigo-400/20 rounded-2xl animate-pulse"></div>
-                    )}
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-2 sm:mt-3">
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} font-medium`}>
-                <kbd className={`px-1 sm:px-2 py-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} rounded-md font-mono text-xs`}>Enter</kbd> to send
-                <span className="hidden sm:inline"> • <kbd className={`px-2 py-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} rounded-md font-mono ml-1`}>Shift+Enter</kbd> for new line</span>
-              </p>
-              <div className={`flex items-center space-x-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="hidden sm:inline">AI is ready</span>
+                {isTyping && (
+                  <div className="absolute bottom-full left-4 mb-2 flex items-center space-x-2 text-xs text-gray-400 bg-gray-700/60 border-gray-600/50 px-2 py-1 rounded-lg border backdrop-blur-xl">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                    <span className="hidden sm:inline">AI is ready</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </div>      {/* Enhanced Chat Sidebar - Desktop Only */}
+      </div>
+
+      {/* Enhanced Chat Sidebar - Desktop Only */}
       {showSidebar && (
-        <div className={`hidden lg:block w-80 flex-shrink-0 border-l ${isDark ? 'border-gray-700/50 bg-gradient-to-b from-gray-800/80 via-gray-800/90 to-gray-900/30' : 'border-gray-100/50 bg-gradient-to-b from-gray-50/80 via-white/90 to-blue-50/30'} backdrop-blur-xl`}>
+        <div className={`hidden lg:flex lg:flex-col w-80 flex-shrink-0 border-l ${isDark ? 'border-gray-700/50 bg-gradient-to-b from-gray-800/80 via-gray-800/90 to-gray-900/30' : 'border-gray-100/50 bg-gradient-to-b from-gray-50/80 via-white/90 to-blue-50/30'} backdrop-blur-xl h-full`}>
           {/* Sidebar Header */}
           <div className={`flex-shrink-0 p-6 border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'}`}>
             <div className="flex items-center space-x-3 mb-4">
-              <MessageSquare className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Chat History</h3>
+              <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20' : 'bg-gradient-to-br from-blue-500/10 to-purple-500/10'} flex items-center justify-center backdrop-blur-xl border ${isDark ? 'border-blue-500/20' : 'border-blue-500/10'}`}>
+                <MessageSquare className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Chat History</h2>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{chatHistory.length} conversations</p>
+              </div>
             </div>
             <button
               onClick={newChat}
-              className="w-full group flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] font-semibold"
+              className={`w-full flex items-center justify-center space-x-2 px-4 py-3 ${isDark 
+                ? 'text-gray-300 hover:text-blue-300 bg-gray-700/60 hover:bg-blue-900/50 border-gray-600/50 hover:border-blue-500/50' 
+                : 'text-gray-700 hover:text-blue-700 bg-white/60 hover:bg-blue-50 border-gray-200/50 hover:border-blue-200'
+              } border rounded-xl transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-xl font-medium`}
             >
-              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-              Start New Chat
+              <Plus className="w-4 h-4" />
+              <span>New Chat</span>
             </button>
           </div>
-          
-          {/* Chat List */}
-          <div className="flex-1 overflow-y-auto pb-6">
-            <div className="px-4 pt-4">
-              <div className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider mb-3 px-2`}>
-                Recent Conversations
-              </div>
-            </div>
+
+          {/* Chat History List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {chatHistory.map((chat) => (
               <div
                 key={chat.id}
                 onClick={() => switchChat(chat.id)}
-                className={`mx-4 my-2 p-4 rounded-2xl cursor-pointer transition-all duration-300 group relative overflow-hidden ${
-                  chat.isActive 
-                    ? `${isDark ? 'bg-gradient-to-r from-blue-900/50 via-purple-900/50 to-indigo-900/50 border-2 border-blue-400/50' : 'bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50 border-2 border-blue-200/50'} shadow-md` 
-                    : `${isDark ? 'bg-gray-700/80 hover:bg-gray-700 border-gray-600/50 hover:border-gray-500/50' : 'bg-white/80 hover:bg-white border-gray-200/50 hover:border-gray-300/50'} border shadow-sm hover:shadow-md backdrop-blur-sm`
-                }`}
+                className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                  chat.isActive
+                    ? `${isDark ? 'bg-blue-900/50 border-blue-500/50 shadow-md' : 'bg-blue-50 border-blue-200 shadow-md'}`
+                    : `${isDark ? 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-600/30 hover:border-gray-500/50' : 'bg-white/30 border-gray-200/50 hover:bg-white/60 hover:border-gray-300'} hover:shadow-md`
+                } backdrop-blur-xl`}
               >
-                {chat.isActive && (
-                  <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10' : 'bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5'} rounded-2xl`}></div>
-                )}
-                <div className="relative flex items-start justify-between">
+                <div className="flex items-start justify-between space-x-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        chat.isActive ? (isDark ? 'bg-blue-400' : 'bg-blue-500') : (isDark ? 'bg-gray-500' : 'bg-gray-300')
-                      }`}></div>
-                      <h4 className={`font-semibold text-sm truncate ${
-                        chat.isActive 
-                          ? (isDark ? 'text-blue-300' : 'text-blue-900') 
-                          : (isDark ? 'text-white' : 'text-gray-900')
-                      }`}>
-                        {chat.title}
-                      </h4>
-                    </div>
-                    <p className={`text-xs leading-relaxed truncate mb-2 ${
+                    <h3 className={`font-semibold text-sm truncate ${
                       chat.isActive 
-                        ? (isDark ? 'text-blue-300' : 'text-blue-700') 
-                        : (isDark ? 'text-gray-300' : 'text-gray-600')
+                        ? (isDark ? 'text-blue-300' : 'text-blue-700')
+                        : (isDark ? 'text-gray-200' : 'text-gray-900')
                     }`}>
-                      {chat.lastMessage}
+                      {chat.title}
+                    </h3>
+                    <p className={`text-xs mt-1 line-clamp-2 ${
+                      chat.isActive 
+                        ? (isDark ? 'text-blue-200/70' : 'text-blue-600/70')
+                        : (isDark ? 'text-gray-400' : 'text-gray-500')
+                    }`}>
+                      {chat.lastMessage || "No messages yet"}
                     </p>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 mt-2">
                       <Clock className={`w-3 h-3 ${
                         chat.isActive 
-                          ? (isDark ? 'text-blue-400' : 'text-blue-500') 
+                          ? (isDark ? 'text-blue-300/60' : 'text-blue-500/60')
                           : (isDark ? 'text-gray-500' : 'text-gray-400')
                       }`} />
-                      <span className={`text-xs font-medium ${
+                      <span className={`text-xs ${
                         chat.isActive 
-                          ? (isDark ? 'text-blue-400' : 'text-blue-600') 
-                          : (isDark ? 'text-gray-400' : 'text-gray-500')
+                          ? (isDark ? 'text-blue-300/60' : 'text-blue-500/60')
+                          : (isDark ? 'text-gray-500' : 'text-gray-400')
                       }`}>
-                        {formatRelativeTime(chat.timestamp)}
+                        {chat.timestamp.toLocaleDateString()}
                       </span>
                     </div>
                   </div>
-                  {!chat.isActive && (
-                    <button
-                      onClick={(e) => deleteChat(chat.id, e)}
-                      className={`opacity-0 group-hover:opacity-100 p-2 ${isDark 
-                        ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/50' 
-                        : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                      } rounded-xl transition-all duration-200 ml-2`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => deleteChat(chat.id, e)}
+                    className={`opacity-0 group-hover:opacity-100 p-1.5 ${isDark 
+                      ? 'text-gray-400 hover:text-red-400 bg-gray-600/60 hover:bg-red-900/50 border-gray-500/50 hover:border-red-500/50' 
+                      : 'text-gray-400 hover:text-red-600 bg-white/60 hover:bg-red-50 border-gray-200/50 hover:border-red-200'
+                    } border rounded-lg transition-all duration-200 backdrop-blur-xl`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             ))}
-            
-            {/* Empty State */}
-            {chatHistory.length === 1 && (
-              <div className="mx-4 mt-8 p-6 text-center">
-                <div className={`w-16 h-16 ${isDark ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30' : 'bg-gradient-to-r from-blue-100 to-purple-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <MessageSquare className={`w-8 h-8 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Sidebar Overlay */}
+      {showMobileSidebar && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileSidebar(false)} />
+          <div className={`relative w-80 ${isDark ? 'bg-gray-800/95 border-gray-700/50' : 'bg-white/95 border-gray-200/50'} border-r backdrop-blur-xl h-full flex flex-col`}>
+            {/* Mobile Sidebar Header */}
+            <div className={`flex-shrink-0 p-4 border-b ${isDark ? 'border-gray-700/50' : 'border-gray-100/50'} flex items-center justify-between`}>
+              <div className="flex items-center space-x-3">
+                <div className={`w-8 h-8 rounded-xl ${isDark ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20' : 'bg-gradient-to-br from-blue-500/10 to-purple-500/10'} flex items-center justify-center backdrop-blur-xl border ${isDark ? 'border-blue-500/20' : 'border-blue-500/10'}`}>
+                  <MessageSquare className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
                 </div>
-                <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'} font-medium mb-2`}>Start a conversation</p>
-                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} leading-relaxed`}>
-                  Your chat history will appear here as you interact with Sehpaathi AI.
-                </p>
+                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Chats</h2>
               </div>
-            )}
+              <button
+                onClick={() => setShowMobileSidebar(false)}
+                className={`p-2 ${isDark ? 'text-gray-400 hover:text-gray-300 bg-gray-700/60 hover:bg-gray-600/50' : 'text-gray-500 hover:text-gray-700 bg-white/60 hover:bg-gray-50'} rounded-xl transition-all duration-200`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mobile Chat History */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatHistory.map((chat) => (
+                <div
+                  key={chat.id}
+                  onClick={() => switchChat(chat.id)}
+                  className={`group relative p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    chat.isActive
+                      ? `${isDark ? 'bg-blue-900/50 border-blue-500/50' : 'bg-blue-50 border-blue-200'}`
+                      : `${isDark ? 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-600/30' : 'bg-white/30 border-gray-200/50 hover:bg-white/60'}`
+                  } backdrop-blur-xl`}
+                >
+                  <div className="flex items-start justify-between space-x-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold text-sm truncate ${
+                        chat.isActive 
+                          ? (isDark ? 'text-blue-300' : 'text-blue-700')
+                          : (isDark ? 'text-gray-200' : 'text-gray-900')
+                      }`}>
+                        {chat.title}
+                      </h3>
+                      <p className={`text-xs mt-1 line-clamp-1 ${
+                        chat.isActive 
+                          ? (isDark ? 'text-blue-200/70' : 'text-blue-600/70')
+                          : (isDark ? 'text-gray-400' : 'text-gray-500')
+                      }`}>
+                        {chat.lastMessage || "No messages yet"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => deleteChat(chat.id, e)}
+                      className={`opacity-0 group-hover:opacity-100 p-1 ${isDark 
+                        ? 'text-gray-400 hover:text-red-400' 
+                        : 'text-gray-400 hover:text-red-600'
+                      } transition-all duration-200`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

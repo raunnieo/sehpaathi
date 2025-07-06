@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../contexts/useTheme";
 import { 
   BookOpen, 
@@ -17,16 +17,44 @@ import {
 
 const About = () => {
   const { isDark } = useTheme();
-  const [isVisible, setIsVisible] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [visibleSections, setVisibleSections] = useState(new Set());
+  const sectionRefs = useRef({});
 
   useEffect(() => {
-    setIsVisible(true);
+    // Intersection Observer for smooth scroll animations
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleSections(prev => new Set([...prev, entry.target.id]));
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    // Observe all sections
+    Object.values(sectionRefs.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
     const interval = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % 3);
     }, 3000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
   }, []);
+
+  const setSectionRef = (id) => (ref) => {
+    if (ref) {
+      sectionRefs.current[id] = ref;
+      ref.id = id;
+    }
+  };
 
   const teamMembers = [
      {
@@ -79,9 +107,8 @@ const About = () => {
     { number: "50K+", label: "Resources Managed", icon: BookOpen },
     { number: "99.9%", label: "Uptime", icon: Brain },
     { number: "24/7", label: "AI Support", icon: Sparkles },
-  ];
-  return (
-    <div className={`min-h-screen relative overflow-hidden ${
+  ];  return (
+    <div className={`min-h-screen relative scroll-smooth ${
       isDark ? 'bg-gray-900' : 'bg-white'
     }`}>
       {/* Background decorations */}
@@ -91,9 +118,13 @@ const About = () => {
         <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        {/* Hero Section */}
-        <div className={`text-center max-w-4xl mx-auto mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">        {/* Hero Section */}
+        <div 
+          ref={setSectionRef('hero')}
+          className={`text-center max-w-4xl mx-auto mb-20 transition-all duration-1000 ease-out ${
+            visibleSections.has('hero') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >
           <div className={`inline-flex items-center gap-2 bg-gradient-to-r backdrop-blur-sm border px-6 py-3 rounded-full text-sm font-medium mb-8 ${
             isDark 
               ? 'from-blue-500/20 to-purple-500/20 border-blue-500/30 text-blue-300'
@@ -101,14 +132,15 @@ const About = () => {
           }`}>
             <Sparkles className="w-4 h-4" />
             Our Journey
-          </div>          <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 ${
+          </div>
+          <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 ${
             isDark ? 'text-white' : 'text-gray-900'
           }`}>
             From Student 
-            <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
+            <span className="leading-snug block bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
               Struggles to Innovation
             </span>
-          </h1>
+  </h1>
           <p className={`text-xl sm:text-2xl max-w-3xl mx-auto leading-relaxed ${
             isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
@@ -116,10 +148,13 @@ const About = () => {
             developers, transforming the way we approach learning and resource
             management in engineering education.
           </p>
-        </div>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20">        {stats.map((stat, index) => (
+        </div>        {/* Stats Section */}
+        <div 
+          ref={setSectionRef('stats')}
+          className={`grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20 transition-all duration-1000 ease-out ${
+            visibleSections.has('stats') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >{stats.map((stat, index) => (
           <div
             key={index}
             className={`backdrop-blur-sm border p-6 rounded-2xl text-center group transition-all duration-300 hover:scale-105 ${
@@ -139,10 +174,13 @@ const About = () => {
             }`}>{stat.label}</div>
           </div>
           ))}
-        </div>
-
-        {/* Journey Section */}
-        <div className="mb-20">          <div className="text-center mb-16">
+        </div>        {/* Journey Section */}
+        <div 
+          ref={setSectionRef('journey')}
+          className={`mb-20 transition-all duration-1000 ease-out ${
+            visibleSections.has('journey') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        ><div className="text-center mb-16">
             <h2 className={`text-3xl sm:text-4xl font-bold mb-4 ${
               isDark ? 'text-white' : 'text-gray-900'
             }`}>Our Journey</h2>
@@ -179,10 +217,13 @@ const About = () => {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Team Section */}
-        <div className="mb-20">          <div className="text-center mb-16">
+        </div>        {/* Team Section */}
+        <div 
+          ref={setSectionRef('team')}
+          className={`mb-20 transition-all duration-1000 ease-out ${
+            visibleSections.has('team') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        ><div className="text-center mb-16">
             <h2 className={`text-3xl sm:text-4xl font-bold mb-4 ${
               isDark ? 'text-white' : 'text-gray-900'
             }`}>Meet the Innovators</h2>
@@ -279,14 +320,14 @@ const About = () => {
               <p className={`text-xl mb-8 max-w-2xl mx-auto ${
                 isDark ? 'text-gray-300' : 'text-gray-600'
               }`}>
-                Have ideas, feedback, or want to contribute? We would love to hear from you!
+                Have ideas, feedback, or want to contribute? <br/>We would love to hear from you!
               </p>
               <a
-                href="mailto:contact@sehpaathi.com"
+                href="/contact-support"
                 className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-500 hover:to-purple-500 transition-all duration-300 hover:scale-105 group"
               >
-                <Mail className="w-5 h-5" />
-                contact@sehpaathi.com
+                  
+                Contact Us
                 <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </a>
             </div>

@@ -1,9 +1,9 @@
-import Profile from "../../components/Profile/Profile";
 import { useTheme } from "../../contexts/useTheme";
 import PropTypes from 'prop-types';
 
 const DashboardHeader = ({ userName, selectedRole }) => {
   const { isDark } = useTheme();
+
   const getGradientText = () => {
     switch (selectedRole) {
       case "sehpaathi":
@@ -36,32 +36,29 @@ const DashboardHeader = ({ userName, selectedRole }) => {
       default:
         return (
           <>
-            Your Learning{" "}
+            Welcome{" "}
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Dashboard
-            </span>
+              {userName}
+            </span>{" "}!
           </>
         );
     }
   };
-  return (
-    <>
-      <div className="flex flex-row justify-between mx-auto">
-        <div className="mb-8">
-          {selectedRole === "dashboard" && (
-            <span className={`${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} px-4 py-1 rounded-full text-sm font-medium backdrop-blur-xl`}>
-              Swagatam {userName}!
-            </span>
-          )}
-          <h1 className={`text-4xl font-bold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{getGradientText()}</h1>
-        </div>
 
-        <div className="">
-          <Profile />
-        </div>
+  return (
+    <div className="flex items-center space-x-3">
+      <div>
+        <h1 className={`text-lg sm:text-xl font-bold ${isDark ? 'bg-gradient-to-r from-white via-blue-200 to-purple-200' : 'bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800'} bg-clip-text text-transparent`}>
+          {getGradientText()}
+        </h1>
+        <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'} font-medium`}>
+          {selectedRole === "dashboard" && "Your personalized learning space"}
+          {selectedRole === "materials" && "Access course materials, notes, and resources"}
+          {selectedRole === "resources" && "Manage your study materials and links"}
+          {selectedRole === "sehpaathi" && "Your AI-powered study companion"}
+        </p>
       </div>
-    </>
-  );
+    </div>);
 };
 
 DashboardHeader.propTypes = {
