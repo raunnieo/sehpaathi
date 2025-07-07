@@ -1,8 +1,26 @@
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/useTheme';
+import { useState, useEffect } from 'react';
 
 const ThemeToggle = () => {
   const { isDark, toggleTheme } = useTheme();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Don't show floating toggle on mobile - settings will be in Profile page
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <button
@@ -16,7 +34,8 @@ const ThemeToggle = () => {
         ) : (
           <Moon className="w-6 h-6 group-hover:-rotate-12 transition-transform duration-500" />
         )}
-      </div>      {/* Tooltip */}
+      </div>
+      {/* Tooltip */}
       <div className={`absolute bottom-16 right-0 text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap ${
         isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-800 text-white'
       }`}>

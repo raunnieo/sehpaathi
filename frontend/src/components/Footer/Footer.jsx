@@ -19,7 +19,6 @@ import { useTheme } from "../../contexts/useTheme";
 function Footer() {
   const { isDark } = useTheme();
   const currentYear = new Date().getFullYear();
-
   const footerSections = [
     {
       title: "Platform",
@@ -29,32 +28,30 @@ function Footer() {
         { name: "Resource Manager", href: "/dashboard/resources", icon: Users },
         { name: "About Us", href: "/about", icon: Heart },
       ],
-    },
-    {
+    },    {
       title: "Support",
       links: [
-        { name: "Help Center", href: "/help", icon: HelpCircle },
-        { name: "Documentation", href: "/docs", icon: BookOpen },
-        { name: "Community", href: "/community", icon: Users },
-        { name: "Contact Support", href: "/contact", icon: Mail },
+        { name: "Help Center", href: "/coming-soon", icon: HelpCircle },
+        { name: "Documentation", href: "/coming-soon", icon: BookOpen },
+        { name: "Community", href: "/coming-soon", icon: Users },
+        { name: "Contact Support", href: "/contact-support", icon: Mail },
       ],
     },
     {
       title: "Legal",
       links: [
-        { name: "Privacy Policy", href: "/privacy", icon: Shield },
-        { name: "Terms of Service", href: "/terms", icon: BookOpen },
-        { name: "Cookie Policy", href: "/cookies", icon: Shield },
-        { name: "Data Security", href: "/security", icon: Shield },
+        { name: "Privacy Policy", href: "/coming-soon", icon: Shield },
+        { name: "Terms of Service", href: "/coming-soon", icon: BookOpen },
+        { name: "Cookie Policy", href: "/coming-soon", icon: Shield },
+        { name: "Data Security", href: "/coming-soon", icon: Shield },
       ],
     },
   ];
-
   const socialLinks = [
-    { name: "Twitter", icon: Twitter, href: "#", gradient: "from-blue-400 to-blue-600" },
-    { name: "LinkedIn", icon: Linkedin, href: "#", gradient: "from-blue-600 to-blue-800" },
-    { name: "GitHub", icon: Github, href: "#", gradient: "from-gray-700 to-gray-900" },
-    { name: "Instagram", icon: Instagram, href: "#", gradient: "from-pink-500 to-purple-600" },
+    { name: "Twitter", icon: Twitter, href: "/coming-soon", gradient: "from-blue-400 to-blue-600" },
+    { name: "LinkedIn", icon: Linkedin, href: "/coming-soon", gradient: "from-blue-600 to-blue-800" },
+    { name: "GitHub", icon: Github, href: "/coming-soon", gradient: "from-gray-700 to-gray-900" },
+    { name: "Instagram", icon: Instagram, href: "/coming-soon", gradient: "from-pink-500 to-purple-600" },
   ];
 
   const stats = [
@@ -236,23 +233,21 @@ function Footer() {
                 
               </div>
             </div>
-              <div className="flex flex-wrap justify-center gap-6 text-sm">
-              <a href="/terms" className={`transition-colors font-medium ${
+              <div className="flex flex-wrap justify-center gap-6 text-sm">              <a href="/coming-soon" className={`transition-colors font-medium ${
                 isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
               }`}>
                 Terms
               </a>
-              <a href="/privacy" className={`transition-colors font-medium ${
+              <a href="/coming-soon" className={`transition-colors font-medium ${
                 isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
               }`}>
                 Privacy
               </a>
-              <a href="/security" className={`transition-colors font-medium ${
+              <a href="/coming-soon" className={`transition-colors font-medium ${
                 isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
               }`}>
                 Security
-              </a>
-              <a href="/contact" className={`transition-colors font-medium ${
+              </a>              <a href="/contact-support" className={`transition-colors font-medium ${
                 isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
               }`}>
                 Contact

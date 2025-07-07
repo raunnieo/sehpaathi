@@ -20,6 +20,9 @@ import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PrivateRoute from "./route/PrivateRoute.jsx";
 import Error from "./pages/Error/Error.jsx";
 import UserCustomization from "./pages/UserCustomization/UserCustomization.jsx";
+import ComingSoon from "./pages/ComingSoon/ComingSoon.jsx";
+import ContactSupport from "./pages/ContactSupport/ContactSupport.jsx";
+import Demo from "./pages/Demo/Demo.jsx";
 
 // Dashboard Pages
 import DashboardHome from "./pages/Dashboard/DashboardHome.jsx";
@@ -33,9 +36,13 @@ const router = createBrowserRouter(
     <Route path="/" element={<Layout/>} errorElement = {<Error/>}>
       <Route path="" element={<Home />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/signin" element={<Signin />} />
+      <Route path="/signin" element={<Signin />} />      
       <Route path="/about" element={<About />} />
+      <Route path="/demo" element={<Demo />} />
+      <Route path="/coming-soon" element={<ComingSoon />} />
+      <Route path="/contact-support" element={<ContactSupport />} />
       <Route path="/customize-profile" element={<PrivateRoute element={<UserCustomization />} />} />
+      <Route path="/user-customization" element={<PrivateRoute element={<UserCustomization />} />} />
       <Route
         path="/dashboard"
         element={<PrivateRoute element={<Dashboard />} />}

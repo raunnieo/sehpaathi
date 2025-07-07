@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/useTheme";
-import { BookOpen, User, UserPlus, Home, GraduationCap, ArrowRight, Menu, X } from "lucide-react";
+import { BookOpen, User, UserPlus, Home, ArrowRight, Menu, X } from "lucide-react";
 
 function Header() {
   const { isDark } = useTheme();
@@ -59,7 +59,7 @@ function Header() {
               : 'bg-white/80 shadow-blue-500/5 border-gray-100/30'
           }` 
         : `backdrop-blur-md ${
-            isDark ? 'bg-gray-900/60' : 'bg-white/60'
+            isDark ? 'bg-gray-950/95' : 'bg-white/30'
           }`
     }`}>
       {/* Background glass effect */}
@@ -75,7 +75,11 @@ function Header() {
           >
             <div className="relative">
               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/25 group-hover:shadow-2xl group-hover:shadow-blue-500/40 group-hover:scale-110 transition-all duration-300">
-                <GraduationCap className="w-6 h-6 lg:w-7 lg:h-7 text-white drop-shadow-lg" />
+                <img
+                    src="/assets/notwhite.png"
+                    alt="Sehpaathi Demo"
+                    className="relative w-full h-auto rounded-xl shadow-2xl hover:scale-105 transition-transform duration-500"
+                  />
               </div>
               <div className={`absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 animate-pulse shadow-lg ${
                 isDark ? 'border-gray-900' : 'border-white'
@@ -92,23 +96,26 @@ function Header() {
               </p>
             </div>
           </div>
-
+          <div className="hidden lg:flex items-center gap-2">
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="flex items-center gap-2">
             {headerItems.map((item, index) => {
               const Icon = item.icon;
               return (
                 <button
                   key={index}
-                  className={`group relative flex items-center gap-3 px-5 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${
-                    isDark 
-                      ? 'text-gray-300 hover:text-white hover:bg-white/10 backdrop-blur-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/60 backdrop-blur-sm'
+                  className={`group relative flex items-center gap-3 px-5 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${
+                    isDark
+                      ? isScrolled
+                        ? 'text-gray-300 hover:text-white hover:bg-gray-950/0 backdrop-blur-sm' // Scrolled: keep current hover bg
+                        : 'text-gray-300 hover:text-white bg-gray-950/0' // Not scrolled: Match header bg (transparent initially)
+                        : // Light mode:
+                        'text-gray-600 hover:text-gray-900 hover:bg-white/60 backdrop-blur-sm'
                   }`}
                   onClick={() => handleNavigation(item.href)}
                 >
                   {/* Glass background */}
-                  <div className={`absolute inset-0 rounded-2xl transition-all duration-300 opacity-0 group-hover:opacity-100 ${
+                  <div className={`absolute inset-0 rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100 ${
                     isDark 
                       ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10'
                       : 'bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-gray-200/50'
@@ -122,7 +129,7 @@ function Header() {
           </nav>
 
           {/* Auth Buttons - Desktop */}
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {authItems.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -157,7 +164,7 @@ function Header() {
               );
             })}
           </div>
-
+</div>
           {/* Mobile Menu Button */}
           <button
             className={`lg:hidden relative p-3 rounded-2xl transition-all duration-300 backdrop-blur-xl border hover:scale-105 ${

@@ -30,7 +30,7 @@ const Error = () => {
             </div>
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold leading-snug mb-7 bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
             Oops! Something Went Wrong
           </h1>
             <p className={`text-xl mb-8 leading-relaxed max-w-lg ${
@@ -51,7 +51,7 @@ const Error = () => {
             </button>
             
             <button
-              onClick={() => navigate("/contact")}
+              onClick={() => navigate("/contact-support")}
               className="group bg-gray-700/50 border border-gray-600/50 text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-700/70 transition-all duration-300 flex items-center justify-center gap-3 hover:scale-105 backdrop-blur-sm"
             >
               <Mail className="w-5 h-5" />
