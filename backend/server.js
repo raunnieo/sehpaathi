@@ -77,10 +77,21 @@ app.use(compression({
 // CORS configuration
 const corsOptions = {
     origin: (origin, callback) => {
-        const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5174').split(',');
+        const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5174')
+            .split(',')
+            .map(url => url.trim())
+            .filter(url => url.length > 0);
+        
+        // Log for debugging
+        if (process.env.NODE_ENV === 'development') {
+            logger.info('Allowed origins:', allowedOrigins);
+            logger.info('Request origin:', origin);
+        }
+        
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            logger.warn(`CORS blocked origin: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
