@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   BookOpen,
   Search, 
@@ -7,12 +7,14 @@ import {
   ChevronDown,
   GraduationCap,
   Calendar,
-  FileText
+  FileText,
+  Loader
 } from "lucide-react";
 import { branches, semesters, materialTypes } from "../../constants";
 import { useTheme } from "../../contexts/useTheme";
 import DashboardHeader from "../../components/DashboardHeader/DashboardHeader";
 import DateHeader from "../../components/DateHeader/DateHeader";
+import { materialService } from "../../services/materialServices";
 
 const Materials = () => {
   const { isDark } = useTheme();
@@ -20,76 +22,157 @@ const Materials = () => {
   const [selectedSemester, setSelectedSemester] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState({});
+  const [error, setError] = useState(null);
 
-  // Mock materials data - replace with actual API call
-  const mockMaterials = [
-    {
-      id: 1,
-      title: "Data Structures and Algorithms - Complete Notes",
-      subject: "Computer Science",
-      type: "Class Notes",
-      branch: "CSE",
-      semester: 3,
-      fileSize: "2.4 MB",
-      downloadCount: 156,
-      uploadDate: "2024-01-15"
-    },
-    {
-      id: 2,
-      title: "Linear Algebra - Lecture Slides",
-      subject: "Mathematics",
-      type: "Lecture PPTs",
-      branch: "CSE",
-      semester: 2,
-      fileSize: "5.2 MB",
-      downloadCount: 89,
-      uploadDate: "2024-01-10"
-    },
-    {
-      id: 3,
-      title: "Digital Electronics - Previous Year Questions",
-      subject: "Electronics",
-      type: "Previous Year Questions",
-      branch: "ECE",
-      semester: 4,
-      fileSize: "1.8 MB",
-      downloadCount: 203,
-      uploadDate: "2024-01-08"
-    },
-    {
-      id: 4,
-      title: "Object Oriented Programming Lab Manual",
-      subject: "Computer Science",
-      type: "Practical Reports",
-      branch: "CSE",
-      semester: 3,
-      fileSize: "3.1 MB",
-      downloadCount: 124,
-      uploadDate: "2024-01-05"
-    },
-    {
-      id: 5,
-      title: "Engineering Physics - Proficiency Papers",
-      subject: "Physics",
-      type: "Proficiency Papers",
-      branch: "ME",
-      semester: 1,
-      fileSize: "2.8 MB",
-      downloadCount: 67,
-      uploadDate: "2024-01-03"
+  // Fetch materials from API
+  useEffect(() => {
+    fetchMaterials();
+  }, [selectedBranch, selectedSemester, selectedType]);
+
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const filters = {};
+      if (selectedBranch) filters.branch = selectedBranch;
+      if (selectedSemester) filters.semester = selectedSemester;
+      if (selectedType) filters.category = selectedType;
+
+      const response = await materialService.getAllFiles(filters);
+      
+      // Transform API response to match the expected format
+      const transformedMaterials = response.files?.map(file => ({
+        id: file.id,
+        title: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+        subject: extractSubjectFromPath(file.name) || "General",
+        type: selectedType || extractTypeFromPath(file.name) || "Class Notes",
+        branch: selectedBranch || extractBranchFromPath(file.name) || "CSE",
+        semester: parseInt(selectedSemester) || extractSemesterFromPath(file.name) || 1,
+        fileSize: formatFileSize(file.size),
+        downloadCount: Math.floor(Math.random() * 300) + 50, // Mock download count
+        uploadDate: file.createdTime ? new Date(file.createdTime).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        downloadUrl: file.downloadUrl,
+        viewUrl: file.webViewLink,
+        mimeType: file.mimeType
+      })) || [];
+
+      setMaterials(transformedMaterials);
+    } catch (error) {
+      console.error('Failed to fetch materials:', error);
+      setError('Failed to load materials. Please try again.');
+      setMaterials([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const filteredMaterials = mockMaterials.filter(material => {
-    return (
-      (!selectedBranch || material.branch === selectedBranch) &&
-      (!selectedSemester || material.semester === parseInt(selectedSemester)) &&
-      (!selectedType || material.type === selectedType) &&
-      (!searchTerm || 
-        material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        material.subject.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+  // Helper functions to extract information from file names/paths
+  const extractSubjectFromPath = (fileName) => {
+    // Try to extract subject from file name
+    const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Computer Science', 'Electronics', 'Mechanical'];
+    return subjects.find(subject => fileName.toLowerCase().includes(subject.toLowerCase())) || null;
+  };
+
+  const extractTypeFromPath = (fileName) => {
+    const types = {
+      'notes': 'Class Notes',
+      'ppt': 'Lecture PPTs',
+      'slides': 'Lecture PPTs',
+      'previous': 'Previous Year Questions',
+      'pyq': 'Previous Year Questions',
+      'lab': 'Practical Reports',
+      'practical': 'Practical Reports',
+      'proficiency': 'Proficiency Papers',
+      'syllabus': 'Syllabus'
+    };
+    
+    for (const [key, value] of Object.entries(types)) {
+      if (fileName.toLowerCase().includes(key)) {
+        return value;
+      }
+    }
+    return null;
+  };
+
+  const extractBranchFromPath = (fileName) => {
+    const branchMap = { 
+      'cse': 'CSE', 
+      'computer': 'CSE',
+      'ece': 'ece', 
+      'electronics': 'ece',
+      'me': 'me', 
+      'mechanical': 'me',
+      'ee': 'ee', 
+      'electrical': 'ee',
+      'it': 'it',
+      'information': 'it',
+    'materials': 'mme',
+    };
+    for (const [key, value] of Object.entries(branchMap)) {
+      if (fileName.toLowerCase().includes(key)) {
+        return value;
+      }
+    }
+    return null;
+  };
+
+  const extractSemesterFromPath = (fileName) => {
+    const match = fileName.match(/semester?\s*(\d+)|sem\s*(\d+)|(\d+)\s*sem/i);
+    return match ? parseInt(match[1] || match[2] || match[3]) : null;
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "Unknown size";
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const handleDownload = async (material) => {
+    try {
+      setDownloading(prev => ({ ...prev, [material.id]: true }));
+      await materialService.downloadFile(material.id, material.title);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download file. Please try again.');
+    } finally {
+      setDownloading(prev => ({ ...prev, [material.id]: false }));
+    }
+  };
+
+  const handlePreview = async (material) => {
+    try {
+      if (material.viewUrl) {
+        window.open(material.viewUrl, '_blank');
+      } else {
+        const previewUrl = await materialService.getFilePreview(material.id);
+        if (previewUrl) {
+          window.open(previewUrl, '_blank');
+        } else {
+          alert('Preview not available for this file type.');
+        }
+      }
+    } catch (error) {
+      console.error('Preview failed:', error);
+      alert('Failed to open file preview.');
+    }
+  };
+
+  // Filter materials based on search term and filters
+  const filteredMaterials = materials.filter(material => {
+    const matchesSearch = !searchTerm || 
+      material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.subject.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesBranch = !selectedBranch || material.branch === selectedBranch;
+    const matchesSemester = !selectedSemester || material.semester === parseInt(selectedSemester);
+    const matchesType = !selectedType || material.type === selectedType;
+    
+    return matchesSearch && matchesBranch && matchesSemester && matchesType;
   });
   const getTypeColor = (type) => {
     const lightColors = {
@@ -97,14 +180,16 @@ const Materials = () => {
       "Lecture PPTs": "bg-green-100 text-green-700",
       "Previous Year Questions": "bg-purple-100 text-purple-700",
       "Practical Reports": "bg-orange-100 text-orange-700",
-      "Proficiency Papers": "bg-red-100 text-red-700"
+      "Proficiency Papers": "bg-red-100 text-red-700",
+      "Syllabus": "bg-indigo-100 text-indigo-700"
     };
     const darkColors = {
       "Class Notes": "bg-blue-900/30 text-blue-400",
       "Lecture PPTs": "bg-green-900/30 text-green-400",
       "Previous Year Questions": "bg-purple-900/30 text-purple-400",
       "Practical Reports": "bg-orange-900/30 text-orange-400",
-      "Proficiency Papers": "bg-red-900/30 text-red-400"
+      "Proficiency Papers": "bg-red-900/30 text-red-400",
+      "Syllabus": "bg-indigo-900/30 text-indigo-400"
     };
     const colorMap = isDark ? darkColors : lightColors;
     return colorMap[type] || (isDark ? "bg-gray-700/30 text-gray-400" : "bg-gray-100 text-gray-700");
@@ -112,17 +197,17 @@ const Materials = () => {
   const getBranchColor = (branch) => {
     const lightColors = {
       "CSE": "bg-blue-50 text-blue-600 border-blue-200",
-      "ECE": "bg-green-50 text-green-600 border-green-200",
-      "ME": "bg-orange-50 text-orange-600 border-orange-200",
-      "EE": "bg-yellow-50 text-yellow-600 border-yellow-200",
-      "IT": "bg-purple-50 text-purple-600 border-purple-200"
+      "ece": "bg-green-50 text-green-600 border-green-200",
+      "me": "bg-orange-50 text-orange-600 border-orange-200",
+      "ee": "bg-yellow-50 text-yellow-600 border-yellow-200",
+      "it": "bg-purple-50 text-purple-600 border-purple-200"
     };
     const darkColors = {
       "CSE": "bg-blue-900/30 text-blue-400 border-blue-700/50",
-      "ECE": "bg-green-900/30 text-green-400 border-green-700/50",
-      "ME": "bg-orange-900/30 text-orange-400 border-orange-700/50",
-      "EE": "bg-yellow-900/30 text-yellow-400 border-yellow-700/50",
-      "IT": "bg-purple-900/30 text-purple-400 border-purple-700/50"
+      "ece": "bg-green-900/30 text-green-400 border-green-700/50",
+      "me": "bg-orange-900/30 text-orange-400 border-orange-700/50",
+      "ee": "bg-yellow-900/30 text-yellow-400 border-yellow-700/50",
+      "it": "bg-purple-900/30 text-purple-400 border-purple-700/50"
     };
     const colorMap = isDark ? darkColors : lightColors;
     return colorMap[branch] || (isDark ? "bg-gray-700/30 text-gray-400 border-gray-700/50" : "bg-gray-50 text-gray-600 border-gray-200");
@@ -225,7 +310,29 @@ const Materials = () => {
         </div>
       </div>      {/* Materials List */}
       <div className="flex-1 overflow-auto p-4 sm:p-6">
-        {filteredMaterials.length === 0 ? (
+        {error ? (
+          <div className="text-center py-8 sm:py-12">
+            <BookOpen className={`w-12 h-12 sm:w-16 sm:h-16 ${isDark ? 'text-red-500' : 'text-red-400'} mx-auto mb-4`} />
+            <h3 className={`text-base sm:text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>Error Loading Materials</h3>
+            <p className={`text-sm sm:text-base ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-6`}>
+              {error}
+            </p>
+            <button
+              onClick={fetchMaterials}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="text-center py-8 sm:py-12">
+            <Loader className={`w-12 h-12 sm:w-16 sm:h-16 ${isDark ? 'text-gray-400' : 'text-gray-300'} mx-auto mb-4 animate-spin`} />
+            <h3 className={`text-base sm:text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>Loading Materials</h3>
+            <p className={`text-sm sm:text-base ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Please wait while we fetch your study materials...
+            </p>
+          </div>
+        ) : filteredMaterials.length === 0 ? (
           <div className="text-center py-8 sm:py-12">
             <BookOpen className={`w-12 h-12 sm:w-16 sm:h-16 ${isDark ? 'text-gray-600' : 'text-gray-300'} mx-auto mb-4`} />
             <h3 className={`text-base sm:text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>No materials found</h3>
@@ -258,7 +365,9 @@ const Materials = () => {
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(material.type)}`}>
                     {material.type}
                   </span>
-                </div>                {/* Content */}
+                </div>
+
+                {/* Content */}
                 <div className="mb-3 sm:mb-4">
                   <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-2 text-sm sm:text-base line-clamp-2`}>
                     {material.title}
@@ -283,14 +392,25 @@ const Materials = () => {
 
                 {/* Actions */}
                 <div className="flex space-x-2">
-                  <button className="flex-1 flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 text-xs sm:text-sm shadow-lg hover:shadow-xl">
-                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>Download</span>
+                  <button 
+                    onClick={() => handleDownload(material)}
+                    disabled={downloading[material.id]}
+                    className="flex-1 flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 text-xs sm:text-sm shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {downloading[material.id] ? (
+                      <Loader className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                    )}
+                    <span>{downloading[material.id] ? 'Downloading...' : 'Download'}</span>
                   </button>
-                  <button className={`flex items-center justify-center px-2 sm:px-3 py-2 border ${isDark 
-                    ? 'border-gray-600/50 text-gray-400 hover:bg-gray-700/50' 
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  } rounded-lg transition-all duration-200 backdrop-blur-xl`}>
+                  <button 
+                    onClick={() => handlePreview(material)}
+                    className={`flex items-center justify-center px-2 sm:px-3 py-2 border ${isDark 
+                      ? 'border-gray-600/50 text-gray-400 hover:bg-gray-700/50' 
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    } rounded-lg transition-all duration-200 backdrop-blur-xl`}
+                  >
                     <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
                 </div>
@@ -302,9 +422,10 @@ const Materials = () => {
       <div className={`${isDark ? 'bg-gray-800/50' : 'bg-white/50'} backdrop-blur-xl border-t ${isDark ? 'border-gray-700/50' : 'border-gray-200/50'} px-4 sm:px-6 py-3`}>
         <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0 text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           <span>
-            Showing {filteredMaterials.length} of {mockMaterials.length} materials
+            Showing {filteredMaterials.length} of {materials.length} materials
           </span>
-          <span>            Last updated: {new Date().toLocaleDateString()}
+          <span>
+            Last updated: {new Date().toLocaleDateString()}
           </span>
         </div>
       </div>

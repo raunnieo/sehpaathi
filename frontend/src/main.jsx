@@ -23,6 +23,9 @@ import UserCustomization from "./pages/UserCustomization/UserCustomization.jsx";
 import ComingSoon from "./pages/ComingSoon/ComingSoon.jsx";
 import ContactSupport from "./pages/ContactSupport/ContactSupport.jsx";
 import Demo from "./pages/Demo/Demo.jsx";
+import Terms from "./pages/Terms/Terms.jsx";
+import Privacy from "./pages/Privacy/Privacy.jsx";
+import Security from "./pages/Security/Security.jsx";
 
 // Dashboard Pages
 import DashboardHome from "./pages/Dashboard/DashboardHome.jsx";
@@ -39,6 +42,9 @@ const router = createBrowserRouter(
       <Route path="/signin" element={<Signin />} />      
       <Route path="/about" element={<About />} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/security" element={<Security />} />
       <Route path="/coming-soon" element={<ComingSoon />} />
       <Route path="/contact-support" element={<ContactSupport />} />
       <Route path="/customize-profile" element={<PrivateRoute element={<UserCustomization />} />} />
