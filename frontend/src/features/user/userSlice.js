@@ -1,3 +1,9 @@
+// Global selector for user image
+export const selectUserImage = (state) => {
+  const profile = state.user.profile;
+  const user = state.user.user;
+  return profile?.profilePhoto || user?.photoURL || "";
+};
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import Cookies from "js-cookie";
 import { authService } from "../../auth/authService";
