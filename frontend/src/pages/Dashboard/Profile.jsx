@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { doc, setDoc } from "firebase/firestore";
@@ -41,8 +41,119 @@ const Profile = () => {
     bio: userProfile?.bio || "",
     joinDate: user?.metadata?.creationTime || new Date().toISOString(),
     studyGoal: userProfile?.studyGoal || "",
-    preferredSubjects: userProfile?.preferredSubjects || []
+    preferredSubjects: userProfile?.preferredSubjects || [],
+    profilePhoto: userProfile?.profilePhoto || user?.photoURL || ""
   });
+
+  // Profile photo upload logic
+  const fileInputRef = useRef(null);
+  const handlePhotoUpload = () => {
+    console.log('Camera button clicked');
+    if (fileInputRef.current) {
+      console.log('Triggering file input click');
+      fileInputRef.current.click();
+    } else {
+      console.log('fileInputRef.current is null');
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    console.log('File input changed', e);
+    const file = e.target.files[0];
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+    try {
+      // Dynamically import browser-image-compression
+      const imageCompression = (await import('browser-image-compression')).default;
+      console.log('Compressing file:', file);
+      const options = {
+        maxSizeMB: 0.2,
+        maxWidthOrHeight: 300,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      console.log('Compressed file:', compressedFile);
+
+      // Delete old image from Cloudinary if exists
+      let oldImageUrl = profileData.profilePhoto || userProfile?.profilePhoto || user?.photoURL || "";
+      if (oldImageUrl && oldImageUrl.includes('cloudinary.com')) {
+        // Extract public_id from oldImageUrl
+        const matches = oldImageUrl.match(/\/upload\/[^\/]+\/(.+)$/);
+        let publicId = matches ? matches[1].split('.')[0] : null;
+        if (publicId) {
+
+          try {
+            await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/delete-profile-image`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ public_id: publicId })
+            });
+            console.log('Old Cloudinary image deleted:', publicId);
+          } catch (deleteErr) {
+            console.warn('Failed to delete old Cloudinary image:', deleteErr);
+          }
+        }
+      }
+
+      // Upload to Cloudinary
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your_cloud_name';
+      if (!cloudName || !uploadPreset) {
+        alert('Cloudinary config missing in .env');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', compressedFile);
+      formData.append('upload_preset', uploadPreset);
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.secure_url) {
+        console.log('Cloudinary URL:', data.secure_url);
+        setProfileData(prev => ({
+          ...prev,
+          profilePhoto: data.secure_url,
+        }));
+        // Store photo URL in Firestore for the user
+        try {
+          if (auth.currentUser) {
+            const userDocRef = doc(db, "users", auth.currentUser.uid);
+            await setDoc(userDocRef, { profilePhoto: data.secure_url }, { merge: true });
+            console.log('Profile photo URL saved to Firestore');
+            // Sync to Redux
+            dispatch(setUserInfo({
+              user: {
+                uid: user?.uid,
+                email: user?.email,
+                displayName: user?.displayName,
+                photoURL: data.secure_url,
+                phoneNumber: user?.phoneNumber
+              },
+              profileData: {
+                ...profileData,
+                profilePhoto: data.secure_url
+              }
+            }));
+            console.log('Profile photo URL synced to Redux');
+          } else {
+            console.warn('No authenticated user to save photo URL');
+          }
+        } catch (fireErr) {
+          console.error('Error saving photo URL to Firestore:', fireErr);
+        }
+      } else {
+        console.log('Cloudinary upload failed', data);
+        alert('Failed to upload image to Cloudinary');
+      }
+    } catch (err) {
+      console.log('Failed to compress or upload image', err);
+      alert("Failed to compress or upload image");
+    }
+  };
 
   const [stats] = useState({
     studyHours: 156,
@@ -192,12 +303,31 @@ const Profile = () => {
         <div className={`${isDark ? 'bg-gray-800/40 border-gray-700/50' : 'bg-white/70 border-gray-100/50'} backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg border p-4 sm:p-6`}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
             <div className="relative">
-              <div className={`w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 ${isDark ? 'bg-gradient-to-br from-blue-500 to-purple-600' : 'bg-gradient-to-br from-blue-600 to-purple-700'} rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl lg:text-4xl font-bold shadow-xl`}>
-                {profileData.displayName?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <button className={`absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg ${isDark ? 'border-2 border-gray-800' : 'border-2 border-white'}`}>
+              {profileData.profilePhoto ? (
+                <img
+                  src={profileData.profilePhoto}
+                  alt="Profile"
+                  className={`w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full object-cover shadow-xl border-4 ${isDark ? 'border-gray-700' : 'border-white'}`}
+                />
+              ) : (
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 ${isDark ? 'bg-gradient-to-br from-blue-500 to-purple-600' : 'bg-gradient-to-br from-blue-600 to-purple-700'} rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl lg:text-4xl font-bold shadow-xl`}>
+                  {profileData.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handlePhotoUpload}
+                className={`absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg ${isDark ? 'border-2 border-gray-800' : 'border-2 border-white'}`}
+              >
                 <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
             </div>
             <div className="flex-1 text-center sm:text-left">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">

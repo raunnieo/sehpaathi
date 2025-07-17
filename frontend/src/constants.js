@@ -65,7 +65,8 @@ const resourceTypes = [
     "Lecture PPTs",
     "Previous Year Questions",
     "Practical Reports",
-    "Profiency Papers",
+    "Proficiency Papers",
+    "Syllabus"
   ];
 
   const subjects = [

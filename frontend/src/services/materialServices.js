@@ -108,6 +108,126 @@ export const materialService = {
     }
   },
 
+  // New method to get all files for Materials page
+  async getAllFiles(filters = {}) {
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error("No user is currently signed in");
+      }
+
+      const idToken = await user.getIdToken();
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (filters.branch) params.append("branch", filters.branch);
+      if (filters.semester) params.append("semester", filters.semester);
+      if (filters.subject) params.append("subject", filters.subject);
+      if (filters.category) params.append("category", filters.category);
+
+      const response = await fetch(
+        `${API_BASE_URL}/files?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          error.message || error.error || "Failed to fetch files"
+        );
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Get all files error:", error);
+      throw error;
+    }
+  },
+
+  // New method to download a file
+  async downloadFile(fileId, fileName) {
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error("No user is currently signed in");
+      }
+
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_BASE_URL.replace('/admin', '')}/file/${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to download file");
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Download error:", error);
+      throw error;
+    }
+  },
+
+  // New method to get file preview URL
+  async getFilePreview(fileId) {
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error("No user is currently signed in");
+      }
+
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_BASE_URL}/files?fileId=${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get file preview");
+      }
+
+      const data = await response.json();
+      return data.files[0]?.viewUrl || null;
+    } catch (error) {
+      console.error("Preview error:", error);
+      throw error;
+    }
+  },
+
    async getFileTree(){
     try {
       const response = await fetch(`${API_BASE_URL}/directory-tree`); 

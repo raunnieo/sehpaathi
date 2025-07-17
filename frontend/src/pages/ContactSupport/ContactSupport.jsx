@@ -14,7 +14,9 @@ const ContactSupport = () => {
         category: "",
         message: "",
         priority: "medium"
-    }); const [isSubmitting, setIsSubmitting] = useState(false);
+    });
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [formProgress, setFormProgress] = useState(0);
 
@@ -43,6 +45,16 @@ const ContactSupport = () => {
         setFormProgress((filledFields / totalFields) * 100);
     }, [formData]);
 
+    // Cleanup iframe on component unmount
+    useEffect(() => {
+        return () => {
+            const iframe = document.getElementById('hidden-iframe');
+            if (iframe) {
+                document.body.removeChild(iframe);
+            }
+        };
+    }, []);
+
     const handleInputChange = (field, value) => {
         setFormData(prev => ({
             ...prev,
@@ -54,24 +66,76 @@ const ContactSupport = () => {
         e.preventDefault();
         setIsSubmitting(true);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+            const formUrl = 'https://docs.google.com/forms/u/0/d/e/1FAIpQLSeX9TnQPw912LpcOOzNXA4-rMXzss0PdKKjpkgMZzQ623NeRw/formResponse';
 
-        setIsSubmitting(false);
-        setIsSubmitted(true);
+            // Create a hidden iframe with a specific name
+            const iframeName = 'hidden-iframe';
+            let iframe = document.getElementById(iframeName);
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.setAttribute('id', iframeName);
+                iframe.setAttribute('name', iframeName);
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
 
-        // Reset form after 3 seconds
-        setTimeout(() => {
-            setIsSubmitted(false);
+            // Create the form element
+            const form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', formUrl);
+            form.setAttribute('target', iframeName);
+            form.style.display = 'none';
+
+            // Add form fields
+            const formFields = {
+                'entry.848078539': formData.name,
+                'entry.309193415': formData.email,
+                'entry.1675532706': formData.subject,
+                'entry.916790802': formData.message,
+                'entry.1626039784': formData.priority,
+                'entry.1151881136': formData.category
+            };
+
+            // Create and append inputs
+            Object.entries(formFields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'hidden');
+                input.setAttribute('name', name);
+                input.setAttribute('value', value);
+                form.appendChild(input);
+            });
+
+            // Append form, submit it, and clean up
+            document.body.appendChild(form);
+            form.submit();
+
+            // Remove form after submission
+            setTimeout(() => {
+                document.body.removeChild(form);
+            }, 500);
+
             setFormData({
                 name: "",
                 email: "",
                 subject: "",
                 category: "",
                 message: "",
-                priority: "medium"
+                priority: "medium",
             });
-        }, 3000);
+
+            setIsSubmitting(false);
+            setIsSubmitted(true);
+
+            // Reset form after 3 seconds
+            setTimeout(() => {
+                setIsSubmitted(false);
+            }, 3000);
+
+        } catch (error) {
+            console.error('Form submission error:', error);
+            setIsSubmitting(false);
+        }
     };
 
     const isFormValid = formData.name && formData.email && formData.subject && formData.category && formData.message;
@@ -130,13 +194,13 @@ const ContactSupport = () => {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 max-w-6xl mx-auto p-4 sm:p-6 pb-12">        
+            <div className="relative z-10 max-w-6xl mx-auto p-4 sm:p-6 pb-12">
                 {/* Header Section */}
                 <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <div className="relative">
                         <div className={`inline-flex items-center justify-center w-16 h-16 ${isDark ? 'bg-gradient-to-br from-blue-900/50 to-purple-900/50' : 'bg-gradient-to-br from-blue-100 to-purple-100'} rounded-full mb-6 relative group`}>
                             <MessageSquare className={`w-8 h-8 ${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:scale-110 transition-transform duration-300`} />
-                            
+
                         </div>
 
                     </div>
@@ -180,8 +244,8 @@ const ContactSupport = () => {
                                         value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)}
                                         placeholder="Enter your full name"
                                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] ${isDark
-                                                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
-                                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
+                                            ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
+                                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
                                             } ${formData.name ? 'ring-1 ring-green-400' : ''}`}
                                         required
                                     />
@@ -203,8 +267,8 @@ const ContactSupport = () => {
                                         value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)}
                                         placeholder="Enter your email address"
                                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] ${isDark
-                                                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
-                                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
+                                            ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
+                                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
                                             } ${formData.email ? 'ring-1 ring-green-400' : ''}`}
                                         required
                                     />
@@ -228,8 +292,8 @@ const ContactSupport = () => {
                                             value={formData.category}
                                             onChange={(e) => handleInputChange('category', e.target.value)}
                                             className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] appearance-none ${isDark
-                                                    ? 'bg-gray-700/50 border-gray-600 text-white focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
-                                                    : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
+                                                ? 'bg-gray-700/50 border-gray-600 text-white focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
+                                                : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
                                                 } ${formData.category ? 'ring-1 ring-green-400' : ''}`}
                                             required
                                         >
@@ -262,8 +326,8 @@ const ContactSupport = () => {
                                         <select value={formData.priority}
                                             onChange={(e) => handleInputChange('priority', e.target.value)}
                                             className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] appearance-none ${isDark
-                                                    ? 'bg-gray-700/50 border-gray-600 text-white focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
-                                                    : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
+                                                ? 'bg-gray-700/50 border-gray-600 text-white focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
+                                                : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
                                                 }`}
                                         >
                                             {priorities.map((priority) => (
@@ -291,8 +355,8 @@ const ContactSupport = () => {
                                     onChange={(e) => handleInputChange('subject', e.target.value)}
                                     placeholder="Brief description of your issue"
                                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] ${isDark
-                                            ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
-                                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
+                                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
+                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
                                         } ${formData.subject ? 'ring-1 ring-green-400' : ''}`}
                                     required
                                 />
@@ -314,8 +378,8 @@ const ContactSupport = () => {
                                     placeholder="Please provide detailed information about your issue or question..."
                                     rows={6}
                                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent resize-none transition-all duration-300 transform focus:scale-[1.02] ${isDark
-                                            ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
-                                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
+                                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:bg-gray-700 focus:shadow-lg focus:shadow-blue-500/20'
+                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:shadow-lg focus:shadow-blue-500/20'
                                         } ${formData.message ? 'ring-1 ring-green-400' : ''}`}
                                     required
                                 />
@@ -338,8 +402,8 @@ const ContactSupport = () => {
                                     type="submit"
                                     disabled={!isFormValid || isSubmitting}
                                     className={`group relative overflow-hidden flex items-center space-x-2 px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${isFormValid && !isSubmitting
-                                            ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
-                                            : `${isDark ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'} cursor-not-allowed`
+                                        ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
+                                        : `${isDark ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'} cursor-not-allowed`
                                         }`}
                                 >
                                     {/* Shimmer effect for enabled button */}
