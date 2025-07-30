@@ -99,7 +99,7 @@ const Profile = () => {
 
       // Upload to Cloudinary
       const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your_cloud_name';
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
       if (!cloudName || !uploadPreset) {
         alert('Cloudinary config missing in .env');
         return;
