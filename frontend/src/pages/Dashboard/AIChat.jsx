@@ -4,6 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from "../../contexts/useTheme";
+import { useSelector } from "react-redux";
+import { selectUserImage } from "../../features/user/userSlice";
 import DashboardHeader from "../../components/DashboardHeader/DashboardHeader";
 import DateHeader from "../../components/DateHeader/DateHeader";
 import { useOutletContext } from "react-router-dom";
@@ -11,6 +13,7 @@ import { useOutletContext } from "react-router-dom";
 const AIChat = () => {
   const { isDark } = useTheme();
   const { user, userProfile } = useOutletContext();
+  const userImage = useSelector(selectUserImage);
   
   const [messages, setMessages] = useState([
     {
@@ -309,14 +312,25 @@ const AIChat = () => {
                     : `${isDark ? 'border-gray-600/30' : 'border-gray-300/50'} bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600`
                 }`}>
                   {message.sender === 'user' ? (
-                    <img
-                      src={user?.photoURL || userProfile?.profilePhoto || "/assets/logo.png"}
-                      alt="User Avatar"
-                      className="w-full h-full rounded-full object-cover"
-                      onError={(e) => {
-                        e.target.src = "/assets/logo.png";
-                      }}
-                    />
+                    userImage && userImage !== "" ? (
+                      <img
+                        src={userImage}
+                        alt="User Avatar"
+                        className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "/assets/logo.png";
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={user?.photoURL || userProfile?.profilePhoto || "/assets/logo.png"}
+                        alt="User Avatar"
+                        className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "/assets/logo.png";
+                        }}
+                      />
+                    )
                   ) : (
                     <img
                       src="/assets/notwhite.png"

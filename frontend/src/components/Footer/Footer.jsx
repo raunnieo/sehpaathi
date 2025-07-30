@@ -40,10 +40,10 @@ function Footer() {
     {
       title: "Legal",
       links: [
-        { name: "Privacy Policy", href: "/coming-soon", icon: Shield },
-        { name: "Terms of Service", href: "/coming-soon", icon: BookOpen },
+        { name: "Privacy Policy", href: "/privacy", icon: Shield },
+        { name: "Terms of Service", href: "/terms", icon: BookOpen },
         { name: "Cookie Policy", href: "/coming-soon", icon: Shield },
-        { name: "Data Security", href: "/coming-soon", icon: Shield },
+        { name: "Data Security", href: "/security", icon: Shield },
       ],
     },
   ];
@@ -233,25 +233,11 @@ function Footer() {
                 
               </div>
             </div>
-              <div className="flex flex-wrap justify-center gap-6 text-sm">              <a href="/coming-soon" className={`transition-colors font-medium ${
-                isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
-              }`}>
-                Terms
-              </a>
-              <a href="/coming-soon" className={`transition-colors font-medium ${
-                isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
-              }`}>
-                Privacy
-              </a>
-              <a href="/coming-soon" className={`transition-colors font-medium ${
-                isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
-              }`}>
-                Security
-              </a>              <a href="/contact-support" className={`transition-colors font-medium ${
-                isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
-              }`}>
-                Contact
-              </a>
+              <div className="flex flex-wrap justify-center gap-6 text-sm">
+                <a href="/terms" className={`transition-colors font-medium ${isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}>Terms</a>
+                <a href="/privacy" className={`transition-colors font-medium ${isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}>Privacy</a>
+                <a href="/security" className={`transition-colors font-medium ${isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}>Security</a>
+                <a href="/contact-support" className={`transition-colors font-medium ${isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}>Contact</a>
             </div>
           </div>
         </div>

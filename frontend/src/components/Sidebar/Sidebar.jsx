@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
 import PropTypes from "prop-types";
 import { useState } from "react";
+import { useSelector } from "react-redux";
+import { selectUser, selectProfile, selectUserImage } from "../../features/user/userSlice";
 import { useTheme } from "../../contexts/useTheme";
 import {
   Home,
@@ -13,7 +15,12 @@ import {
   ChevronRight
 } from "lucide-react";
 
-const Sidebar = ({ user, userProfile, userName, currentPath, onLogOut, isMobile = false }) => {
+const Sidebar = ({ currentPath, onLogOut, isMobile = false }) => {
+  // Get user/profile from Redux for instant updates
+  const user = useSelector(selectUser);
+  const userProfile = useSelector(selectProfile);
+  const userName = userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || "User";
+  const userImage = useSelector(selectUserImage);
   const { isDark } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -239,9 +246,9 @@ if (isMobile) {
             userProfile?.avatarGradient ? `bg-gradient-to-br ${userProfile.avatarGradient}` :
               "bg-gradient-to-br from-blue-500 to-purple-600"
             }`}>
-            {userProfile?.profilePictureUrl ? (
+            {userImage ? (
               <img
-                src={userProfile.profilePictureUrl}
+                src={userImage}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
@@ -365,9 +372,6 @@ if (isMobile) {
 };
 
 Sidebar.propTypes = {
-  user: PropTypes.object,
-  userProfile: PropTypes.object,
-  userName: PropTypes.string,
   currentPath: PropTypes.string.isRequired,
   onLogOut: PropTypes.func.isRequired,
   isMobile: PropTypes.bool,

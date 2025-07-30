@@ -127,6 +127,7 @@ app.use('/api/files', require('./routes/files'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/docs', require('./routes/docs'));
 app.use('/health', require('./routes/health'));
+app.use("/api/delete-profile-image", require('./routes/cloudinary'));
 
 app.get('/', (req, res) => {
     res.send(`
